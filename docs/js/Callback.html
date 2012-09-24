@@ -1,0 +1,130 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>Callback Class / js Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="../styles.css">
+        <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="../favicon.ico">
+        
+        </head>
+        <body data-library="js" data-type="Callback">
+        <div class="page">
+        <div class="header">
+          <a href="../index.html"><div class="logo"></div></a>
+          <a href="../index.html">Dart Documentation</a>
+         &rsaquo; <a href="../js.html">js</a> &rsaquo; <a href="../js/Callback.html">Callback</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+<h2><div class="icon-library"></div><a href="../js.html">js</a></h2><ul class="icon">
+<li><div class="icon-class"></div><strong>Callback</strong></li>
+<li><a href="../js/Proxy.html"><div class="icon-class"></div>Proxy</a></li>
+</ul>
+</div>
+<div class="content">
+        <h2><strong>Callback</strong>
+          Class
+        </h2>
+        
+<div class="doc">
+<p>Converts a local Dart function to a callback that can be passed to
+JavaScript.</p>
+<p>A callback can either be:</p><ul><li>
+<p>single-fire, in which case it is automatically invalidated after the first
+  invocation, or</p></li><li>multi-fire, in which case it must be explicitly disposed.</li></ul>
+</div>
+<h3>Constructors</h3>
+<div class="method"><h4 id="Callback.many">
+<span class="show-code">Code</span>
+new <strong>Callback</strong>.many(<a href="http://api.dartlang.org/dart_core/Function.html">Function</a> f) <a class="anchor-link" href="#Callback.many"
+              title="Permalink to Callback.Callback">#</a></h4>
+<div class="doc">
+<p>Creates a multi-fire <a class="crossref" href="../js/Callback.html#Callback.once">Callback</a> that invokes 
+<span class="param">f</span>.  The callback must be
+explicitly disposed to avoid memory leaks.</p>
+<pre class="source">
+Callback.many(Function f) {
+  _callback = ([arg1, arg2, arg3, arg4]) {
+    if (!?arg1) {
+      return scoped(() =&gt; f());
+    } else if (!?arg2) {
+      return scoped(() =&gt; f(arg1));
+    } else if (!?arg3) {
+      return scoped(() =&gt; f(arg1, arg2));
+    } else if (!?arg4) {
+      return scoped(() =&gt; f(arg1, arg2, arg3));
+    } else {
+      return scoped(() =&gt; f(arg1, arg2, arg3, arg4));
+    }
+  };
+  _initialize(f, false);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="Callback.once">
+<span class="show-code">Code</span>
+new <strong>Callback</strong>.once(<a href="http://api.dartlang.org/dart_core/Function.html">Function</a> f) <a class="anchor-link" href="#Callback.once"
+              title="Permalink to Callback.Callback">#</a></h4>
+<div class="doc">
+<p>Creates a single-fire <a class="crossref" href="../js/Callback.html#Callback.once">Callback</a> that invokes 
+<span class="param">f</span>.  The callback is
+automatically disposed after the first invocation.</p>
+<pre class="source">
+Callback.once(Function f) {
+  _callback = ([arg1, arg2, arg3, arg4]) {
+    try {
+      if (!?arg1) {
+        return scoped(() =&gt; f());
+      } else if (!?arg2) {
+        return scoped(() =&gt; f(arg1));
+      } else if (!?arg3) {
+        return scoped(() =&gt; f(arg1, arg2));
+      } else if (!?arg4) {
+        return scoped(() =&gt; f(arg1, arg2, arg3));
+      } else {
+        return scoped(() =&gt; f(arg1, arg2, arg3, arg4));
+      }
+    } finally {
+      _dispose();
+    }
+  };
+  _initialize(f, false);
+}
+</pre>
+</div>
+</div>
+<h3>Methods</h3>
+<div class="method"><h4 id="dispose">
+<span class="show-code">Code</span>
+<strong>dispose</strong>() <a class="anchor-link" href="#dispose"
+              title="Permalink to Callback.dispose">#</a></h4>
+<div class="doc">
+<p>Disposes this <a class="crossref" href="../js/Callback.html#Callback.once">Callback</a> so that it may be collected.
+Once a <a class="crossref" href="../js/Callback.html#Callback.once">Callback</a> is disposed, it is an error to invoke it from JavaScript.</p>
+<pre class="source">
+dispose() {
+  assert(_manualDispose);
+  _dispose();
+}
+</pre>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        
+        <div class="footer">
+          <div>This page was generated at 2012-09-24 07:56:16.471</div>
+        </div>
+        <script async src="../client-static.js"></script>
+        </body></html>
+        

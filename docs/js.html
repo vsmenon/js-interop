@@ -1,0 +1,220 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>js Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="styles.css">
+        <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="favicon.ico">
+        
+        </head>
+        <body data-library="js">
+        <div class="page">
+        <div class="header">
+          <a href="index.html"><div class="logo"></div></a>
+          <a href="index.html">Dart Documentation</a>
+         &rsaquo; <a href="js.html">js</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+<h2><div class="icon-library"></div><strong>js</strong></h2><ul class="icon">
+<li><a href="js/Callback.html"><div class="icon-class"></div>Callback</a></li>
+<li><a href="js/Proxy.html"><div class="icon-class"></div>Proxy</a></li>
+</ul>
+</div>
+<div class="content">
+<h2><strong>js</strong> library</h2>
+<div class="doc"><p>The js.dart library provides simple JavaScript invocation from Dart that
+works on both Dartium and on other modern browsers via Dart2JS.</p>
+<p>It provides a model based on scoped <a class="crossref" href="js/Proxy.html">Proxy</a> objects.  Proxies give Dart
+code access to JavaScript objects, fields, and functions as well as the
+ability to pass Dart objects and functions to JavaScript functions.  Scopes
+enable developers to use proxies without memory leaks - a common challenge
+with cross-runtime interoperation.</p>
+<p>The top-level <a class="crossref" href="js.html#context">context</a> getter provides a <a class="crossref" href="js/Proxy.html">Proxy</a> to the global JavaScript
+context for the page your Dart code is running on.  In the following example:</p>
+<pre><code>#import('package:js/js.dart', prefix: 'js');
+</code></pre>
+<pre><code>void main() {
+  js.scoped(() {
+    js.context.alert('Hello from Dart via JavaScript');
+  });
+}
+</code></pre>
+<p>js.context.alert creates a proxy to the top-level alert function in
+JavaScript.  It is invoked from Dart as a regular function that forwards to
+the underlying JavaScript one.  The proxies allocated within the scope are
+released once the scope is exited.</p>
+<p>The library also enables JavaScript proxies to Dart objects and functions.
+For example, the following Dart code:</p>
+<pre><code>scoped(() {
+  js.context.dartCallback = new Callback.once((x) =&gt; print(x*2));
+});
+</code></pre>
+<p>defines a top-level JavaScript function 'dartCallback' that is a proxy to
+the corresponding Dart function.  The <code>Callback.once</code> constructor allows the
+proxy to the Dart function to be retained beyond the end of the scope;
+instead it is released after the first invocation.  (This is a common
+pattern for asychronous callbacks.)</p>
+<p>Note, parameters and return values are intuitively passed by value for
+primitives and by reference for non-primitives.  In the latter case, the
+references are automatically wrapped and unwrapped as proxies by the library.</p>
+<p>This library also allows construction of JavaScripts objects given a <a class="crossref" href="js/Proxy.html">Proxy</a>
+to a corresponding JavaScript constructor.  For example, if the following
+JavaScript is loaded on the page:</p>
+<pre><code>function Foo(x) {
+  this.x = x;
+}
+</code></pre>
+<pre><code>Foo.prototype.add = function(other) {
+  return new Foo(this.x + other.x);
+}
+</code></pre>
+<p>then, the following Dart:</p>
+<pre><code>var foo = new js.Proxy(js.context.Foo, 42);
+var foo2 = foo.add(foo);
+print(foo2.x);
+</code></pre>
+<p>will construct a JavaScript Foo object with the parameter 42, invoke its
+add method, and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to a new Foo object whose x field is 84.</p>
+<p>See <a href="http://dart-lang.github.com/js-interop/">samples</a> for more examples
+of usage.</p></div>
+<h3>Methods</h3>
+<div class="method"><h4 id="array">
+<span class="show-code">Code</span>
+<a href="js/Proxy.html">Proxy</a> <strong>array</strong>(<a href="http://api.dartlang.org/dart_core/List.html">List</a> list) <a class="anchor-link" href="#array"
+              title="Permalink to array">#</a></h4>
+<div class="doc">
+<p>Converts a Dart 
+<span class="param">list</span> to a JavaScript array and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to it.</p>
+<pre class="source">
+Proxy array(List list) =&gt; new Proxy._json(list);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="context">
+<span class="show-code">Code</span>
+<a href="js/Proxy.html">Proxy</a> <strong>get context</strong>() <a class="anchor-link" href="#context"
+              title="Permalink to get context">#</a></h4>
+<div class="doc">
+<p>Returns a proxy to the global JavaScript context for this page.</p>
+<pre class="source">
+Proxy get context {
+  if (_depth == 0) throw 'Cannot get JavaScript context out of scope.';
+  return _js('window');
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="map">
+<span class="show-code">Code</span>
+<a href="js/Proxy.html">Proxy</a> <strong>map</strong>(<a href="http://api.dartlang.org/dart_core/Map.html">Map</a> data) <a class="anchor-link" href="#map"
+              title="Permalink to map">#</a></h4>
+<div class="doc">
+<p>Converts a Dart map 
+<span class="param">data</span> to a JavaScript map and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to it.</p>
+<pre class="source">
+Proxy map(Map data) =&gt; new Proxy._json(data);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="proxyDebug">
+<span class="show-code">Code</span>
+void <strong>proxyDebug</strong>([<a href="http://api.dartlang.org/dart_core/String.html">String</a> message = '']) <a class="anchor-link" href="#proxyDebug"
+              title="Permalink to proxyDebug">#</a></h4>
+<div class="doc">
+<p>Prints the number of live handles in Dart and JavaScript.  This is for
+debugging / profiling purposes.</p>
+<pre class="source">
+void proxyDebug([String message = '']) {
+  print('Proxy status $message:');
+  var live = _proxiedObjectTable.count + _proxiedFunctionTable.count;
+  var total = _proxiedObjectTable.total + _proxiedFunctionTable.total;
+  print('  Dart objects Live : $live (out of $total ever allocated).');
+  print('  ${_jsPortDebug.callSync([])}');
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="release">
+<span class="show-code">Code</span>
+void <strong>release</strong>(<a href="js/Proxy.html">Proxy</a> proxy) <a class="anchor-link" href="#release"
+              title="Permalink to release">#</a></h4>
+<div class="doc">
+<p>Releases a retained 
+<span class="param">proxy</span>.</p>
+<pre class="source">
+void release(Proxy proxy) {
+  _jsInvalidate.callSync(_serialize(proxy));
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="retain">
+<span class="show-code">Code</span>
+<a href="js/Proxy.html">Proxy</a> <strong>retain</strong>(<a href="js/Proxy.html">Proxy</a> proxy) <a class="anchor-link" href="#retain"
+              title="Permalink to retain">#</a></h4>
+<div class="doc">
+<p>Retains the given 
+<span class="param">proxy</span> beyond the current scope.
+Instead, it will need to be explicitly released.
+The given 
+<span class="param">proxy</span> is returned for convenience.</p>
+<pre class="source">
+Proxy retain(Proxy proxy) {
+  _jsGlobalize.callSync(_serialize(proxy));
+  return proxy;
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="scoped">
+<span class="show-code">Code</span>
+<strong>scoped</strong>(f) <a class="anchor-link" href="#scoped"
+              title="Permalink to scoped">#</a></h4>
+<div class="doc">
+<p>Executes the closure 
+<span class="param">f</span> within a scope.  Any proxies created within this
+scope are invalidated afterward unless they are converted to a global proxy.</p>
+<pre class="source">
+scoped(f) {
+  var depth = _enterScope();
+  try {
+    return f();
+  } finally {
+    _exitScope(depth);
+  }
+}
+</pre>
+</div>
+</div>
+<h3>Classes</h3>
+          <div class="type">
+          <h4>
+            <a href="js/Callback.html"><strong>Callback</strong></a>
+          </h4>
+          </div>
+          
+          <div class="type">
+          <h4>
+            <a href="js/Proxy.html"><strong>Proxy</strong></a>
+          </h4>
+          </div>
+          
+        </div>
+        <div class="clear"></div>
+        </div>
+        
+        <div class="footer">
+          <div>This page was generated at 2012-09-24 07:56:16.421</div>
+        </div>
+        <script async src="client-static.js"></script>
+        </body></html>
+        

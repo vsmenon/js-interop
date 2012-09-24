@@ -1,0 +1,127 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>Proxy Class / js Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="../styles.css">
+        <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="../favicon.ico">
+        
+        </head>
+        <body data-library="js" data-type="Proxy">
+        <div class="page">
+        <div class="header">
+          <a href="../index.html"><div class="logo"></div></a>
+          <a href="../index.html">Dart Documentation</a>
+         &rsaquo; <a href="../js.html">js</a> &rsaquo; <a href="../js/Proxy.html">Proxy</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+<h2><div class="icon-library"></div><a href="../js.html">js</a></h2><ul class="icon">
+<li><a href="../js/Callback.html"><div class="icon-class"></div>Callback</a></li>
+<li><div class="icon-class"></div><strong>Proxy</strong></li>
+</ul>
+</div>
+<div class="content">
+        <h2><strong>Proxy</strong>
+          Class
+        </h2>
+        
+<div class="doc">
+<p>Proxies to JavaScript objects.</p>
+</div>
+<h3>Constructors</h3>
+<div class="method"><h4 id="Proxy._internal">
+<span class="show-code">Code</span>
+new <strong>Proxy</strong>._internal(<a href="http://api.dartlang.org/dart_isolate/SendPortSync.html">SendPortSync</a> _port, _id) <a class="anchor-link" href="#Proxy._internal"
+              title="Permalink to Proxy.Proxy">#</a></h4>
+<div class="doc">
+
+<pre class="source">
+Proxy._internal(this._port, this._id);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="Proxy._json">
+<span class="show-code">Code</span>
+factory <strong>Proxy</strong>._json(data) <a class="anchor-link" href="#Proxy._json"
+              title="Permalink to Proxy.Proxy">#</a></h4>
+<div class="doc">
+<p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript map or list created defined via
+Dart map or list.</p>
+<pre class="source">
+factory Proxy._json(data) {
+  if (_depth == 0) throw 'Cannot create Proxy out of scope.';
+  return _convert(data);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="Proxy">
+<span class="show-code">Code</span>
+factory <strong>Proxy</strong>(constructor, [arg1, arg2, arg3, arg4]) <a class="anchor-link" href="#Proxy"
+              title="Permalink to Proxy.Proxy">#</a></h4>
+<div class="doc">
+<p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript object by invoking a (proxy to a)
+JavaScript 
+<span class="param">constructor</span>.  The arguments should be either
+primitive values, DOM elements, or Proxies.</p>
+<pre class="source">
+factory Proxy(constructor, [arg1, arg2, arg3, arg4]) {
+  if (_depth == 0) throw 'Cannot create Proxy out of scope.';
+  var serialized = [constructor, arg1, arg2, arg3, arg4].map(_serialize);
+  var result = _jsPortCreate.callSync(serialized);
+  return _deserialize(result);
+}
+</pre>
+</div>
+</div>
+<h3>Methods</h3>
+<div class="method"><h4 id="noSuchMethod">
+<span class="show-code">Code</span>
+<strong>noSuchMethod</strong>(method, args) <a class="anchor-link" href="#noSuchMethod"
+              title="Permalink to Proxy.noSuchMethod">#</a></h4>
+<div class="doc">
+
+<pre class="source">
+noSuchMethod(method, args) {
+  if (_depth == 0) throw 'Cannot access a JavaScript proxy out of scope.';
+  var result = _port.callSync([_id, method, args.map(_serialize)]);
+  switch (result[0]) {
+    case 'return': return _deserialize(result[1]);
+    case 'exception': throw _deserialize(result[1]);
+    case 'none': throw new NoSuchMethodError(this, method, args);
+    default: throw 'Invalid return value';
+  }
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="operator []">
+<span class="show-code">Code</span>
+<strong>operator []</strong>(arg) <a class="anchor-link" href="#operator []"
+              title="Permalink to Proxy.operator []">#</a></h4>
+<div class="doc">
+
+<pre class="source">
+operator[](arg) =&gt; noSuchMethod('[]', [ arg ]);
+</pre>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        
+        <div class="footer">
+          <div>This page was generated at 2012-09-24 07:56:16.484</div>
+        </div>
+        <script async src="../client-static.js"></script>
+        </body></html>
+        
