@@ -248,7 +248,7 @@ $$.HashMapImplementation = {"":
       throw $.ioore(newIndex);
     t1[newIndex] = key;
     t1 = this._values;
-    if (newIndex < 0 || newIndex >= t1.length)
+    if (newIndex >= t1.length)
       throw $.ioore(newIndex);
     t1[newIndex] = value;
   }
@@ -280,11 +280,11 @@ $$.HashMapImplementation = {"":
   if (t1[index] == null || t1[index] === $.CTC10)
     this._numberOfEntries = this._numberOfEntries + 1;
   t1 = this._keys;
-  if (index < 0 || index >= t1.length)
+  if (index >= t1.length)
     throw $.ioore(index);
   t1[index] = key;
   t1 = this._values;
-  if (index < 0 || index >= t1.length)
+  if (index >= t1.length)
     throw $.ioore(index);
   t1[index] = value;
 },
@@ -311,7 +311,7 @@ $$.HashMapImplementation = {"":
     var value = t1[index];
     t1[index] = null;
     t1 = this._keys;
-    if (index < 0 || index >= t1.length)
+    if (index >= t1.length)
       throw $.ioore(index);
     t1[index] = $.CTC10;
     this._numberOfDeleted = this._numberOfDeleted + 1;
@@ -1247,11 +1247,11 @@ $$.Object = {"":
  _nativeDetectEnvironment$0: function() {
   return this.noSuchMethod$2("_nativeDetectEnvironment", []);
  },
- _count_3$1: function($0) {
-  return this.noSuchMethod$2("_count_3", [$0]);
- },
  replaceWith$1: function($0) {
   return this.noSuchMethod$2("replaceWith", [$0]);
+ },
+ _count_3$1: function($0) {
+  return this.noSuchMethod$2("_count_3", [$0]);
  },
  contains$1: function($0) {
   return this.noSuchMethod$2("contains", [$0]);
@@ -1318,6 +1318,9 @@ $$.Object = {"":
  },
  _remove$2: function($0, $1) {
   return this.noSuchMethod$2("_remove", [$0, $1]);
+ },
+ concat$1: function($0) {
+  return this.noSuchMethod$2("concat", [$0]);
  },
  _deserializeMap$1: function($0) {
   return this.noSuchMethod$2("_deserializeMap", [$0]);
@@ -1423,6 +1426,9 @@ $$.Object = {"":
  },
  get$name: function() {
   return this.noSuchMethod$2("get:name", []);
+ },
+ get$parent: function() {
+  return this.noSuchMethod$2("get:parent", []);
  },
  get$from_user_name: function() {
   return this.noSuchMethod$2("get:from_user_name", []);
@@ -1541,6 +1547,9 @@ $$.Object = {"":
  get$_futurePort: function() {
   return this.noSuchMethod$2("get:_futurePort", []);
  },
+ get$documentElement: function() {
+  return this.noSuchMethod$2("get:documentElement", []);
+ },
  get$_next: function() {
   return this.noSuchMethod$2("get:_next", []);
  },
@@ -1549,6 +1558,9 @@ $$.Object = {"":
  },
  get$_registry: function() {
   return this.noSuchMethod$2("get:_registry", []);
+ },
+ get$attributes: function() {
+  return this.noSuchMethod$2("get:attributes", []);
  },
  get$_isolateId: function() {
   return this.noSuchMethod$2("get:_isolateId", []);
@@ -1646,6 +1658,13 @@ $$.ConstantMap = {"":
  ["length?", "_jsObject", "_lib2_keys"],
  "super": "Object",
  containsKey$1: function(key) {
+  if (typeof key !== 'string')
+    return this.containsKey$1$bailout(1, key);
+  if (key === '__proto__')
+    return false;
+  return $.jsHasOwnProperty(this._jsObject, key);
+},
+ containsKey$1$bailout: function(state, key) {
   if ($.eqB(key, '__proto__'))
     return false;
   return $.jsHasOwnProperty(this._jsObject, key);
@@ -1673,7 +1692,7 @@ $$.ConstantMap = {"":
   return $.Maps_mapToString(this);
 },
  _throwImmutable$0: function() {
-  throw $.$$throw($.CTC21);
+  throw $.$$throw($.CTC18);
 },
  operator$indexSet$2: function(key, val) {
   return this._throwImmutable$0();
@@ -1764,7 +1783,7 @@ $$.FilteredElementList = {"":
   if ($.geB(newLength, len))
     return;
   else if ($.ltB(newLength, 0))
-    throw $.$$throw($.CTC24);
+    throw $.$$throw($.CTC23);
   this.removeRange$2($.sub(newLength, 1), $.sub(len, newLength));
 },
  add$1: function(value) {
@@ -1889,7 +1908,7 @@ $$._ChildrenElementList = {"":
   this._lib_element.$dom_replaceChild$2(value, $.index(this._childElements, index));
 },
  set$length: function(newLength) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  add$1: function(value) {
   this._lib_element.$dom_appendChild$1(value);
@@ -1906,7 +1925,7 @@ $$._ChildrenElementList = {"":
     t2.$dom_appendChild$1(t1.next$0());
 },
  removeRange$2: function(start, rangeLength) {
-  throw $.$$throw($.CTC23);
+  throw $.$$throw($.CTC22);
 },
  getRange$2: function(start, rangeLength) {
   return $._FrozenElementList$_wrap($._Lists_getRange(this, start, rangeLength, []));
@@ -1965,25 +1984,25 @@ $$._FrozenElementList = {"":
   return $.index(this._nodeList, index);
 },
  operator$indexSet$2: function(index, value) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  set$length: function(newLength) {
   $.set$length(this._nodeList, newLength);
 },
  add$1: function(value) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  addLast$1: function(value) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  iterator$0: function() {
   return $._FrozenElementListIterator$(this);
 },
  addAll$1: function(collection) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  removeRange$2: function(start, rangeLength) {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  getRange$2: function(start, rangeLength) {
   return $._FrozenElementList$_wrap($.getRange(this._nodeList, start, rangeLength));
@@ -1992,10 +2011,10 @@ $$._FrozenElementList = {"":
   return $.indexOf$2(this._nodeList, element, start);
 },
  clear$0: function() {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  removeLast$0: function() {
-  throw $.$$throw($.CTC17);
+  throw $.$$throw($.CTC19);
 },
  last$0: function() {
   return $.last(this._nodeList);
@@ -4124,7 +4143,7 @@ $$._ProxiedReferenceTable = {"":
     if (i < 0)
       throw $.ioore(i);
     if ($.contains$1(t2, t1[i]) !== true) {
-      if (i < 0 || i >= t1.length)
+      if (i >= t1.length)
         throw $.ioore(i);
       t3.remove$1(t1[i]);
       this._deletedCount = this._deletedCount + 1;
@@ -4140,7 +4159,7 @@ $$._ProxiedReferenceTable = {"":
     if (i < 0 || i >= t1.length)
       throw $.ioore(i);
     if ($.contains$1(t2, t1[i]) !== true) {
-      if (i < 0 || i >= t1.length)
+      if (i >= t1.length)
         throw $.ioore(i);
       t3.remove$1(t1[i]);
       this._deletedCount = this._deletedCount + 1;
@@ -5035,6 +5054,22 @@ $$._deserialize_deserializeObject = {"":
 }
 };
 
+$$.ConstantMap_forEach_anon = {"":
+ ["this_1", "f_0"],
+ "super": "Closure",
+ call$1: function(key) {
+  return this.f_0.call$2(key, $.index(this.this_1, key));
+}
+};
+
+$$.ConstantMap_getValues_anon = {"":
+ ["this_1", "result_0"],
+ "super": "Closure",
+ call$1: function(key) {
+  return $.add$1(this.result_0, $.index(this.this_1, key));
+}
+};
+
 $$._DeserializedFunctionTable_remove_anon = {"":
  ["f_0"],
  "super": "Closure",
@@ -5052,19 +5087,28 @@ $$.HashSetImplementation_filter__ = {"":
 }
 };
 
-$$.ConstantMap_forEach_anon = {"":
- ["this_1", "f_0"],
+$$._ChildrenElementList_filter_anon = {"":
+ ["f_1", "output_0"],
  "super": "Closure",
- call$1: function(key) {
-  return this.f_0.call$2(key, $.index(this.this_1, key));
+ call$1: function(element) {
+  if (this.f_1.call$1(element) === true)
+    $.add$1(this.output_0, element);
 }
 };
 
-$$.ConstantMap_getValues_anon = {"":
- ["this_1", "result_0"],
+$$.FilteredElementList__filtered_anon = {"":
+ [],
  "super": "Closure",
- call$1: function(key) {
-  return $.add$1(this.result_0, $.index(this.this_1, key));
+ call$1: function(n) {
+  return typeof n === 'object' && n !== null && n.is$Element();
+}
+};
+
+$$.FilteredElementList_removeRange_anon = {"":
+ [],
+ "super": "Closure",
+ call$1: function(el) {
+  return el.remove$0();
 }
 };
 
@@ -5174,31 +5218,6 @@ $$.HashSetImplementation_addAll__ = {"":
  "super": "Closure",
  call$1: function(value) {
   this.this_0.add$1(value);
-}
-};
-
-$$._ChildrenElementList_filter_anon = {"":
- ["f_1", "output_0"],
- "super": "Closure",
- call$1: function(element) {
-  if (this.f_1.call$1(element) === true)
-    $.add$1(this.output_0, element);
-}
-};
-
-$$.FilteredElementList__filtered_anon = {"":
- [],
- "super": "Closure",
- call$1: function(n) {
-  return typeof n === 'object' && n !== null && n.is$Element();
-}
-};
-
-$$.FilteredElementList_removeRange_anon = {"":
- [],
- "super": "Closure",
- call$1: function(el) {
-  return el.remove$0();
 }
 };
 
@@ -5549,11 +5568,31 @@ $._TextTrackListEventsImpl$ = function(_ptr) {
 
 $._serializeElement = function(e) {
   if (e.get$attributes().containsKey$1('data-dart_id') === true)
-    return $.index(e.get$attributes(), 'data-dart_id');
-  var t1 = $._localNextElementId;
-  $._localNextElementId = $.add(t1, 1);
-  var id = 'dart-' + $.S(t1);
-  $.indexSet(e.get$attributes(), 'data-dart_id', id);
+    var id = $.index(e.get$attributes(), 'data-dart_id');
+  else {
+    var t1 = $._localNextElementId;
+    $._localNextElementId = $.add(t1, 1);
+    id = 'dart-' + $.S(t1);
+    $.indexSet(e.get$attributes(), 'data-dart_id', id);
+  }
+  if (!(e === $.document().get$documentElement()))
+    for (var top$ = e; true;) {
+      if (top$.get$attributes().containsKey$1('data-dart_temporary_attached') === true) {
+        var newValue = $.concat($.index(top$.get$attributes(), 'data-dart_temporary_attached'), 'a');
+        $.indexSet(top$.get$attributes(), 'data-dart_temporary_attached', newValue);
+        break;
+      }
+      if (top$.get$parent() == null) {
+        $.indexSet(top$.get$attributes(), 'data-dart_temporary_attached', 'a');
+        $.add$1($.document().get$documentElement().get$elements(), top$);
+        break;
+      }
+      t1 = top$.get$parent();
+      var t2 = $.document().get$documentElement();
+      if (t1 == null ? t2 == null : t1 === t2)
+        break;
+      top$ = top$.get$parent();
+    }
   return id;
 };
 
@@ -5571,13 +5610,6 @@ $._JsVisitedMap$ = function() {
 
 $.isJsArray = function(value) {
   return !(value == null) && value.constructor === Array;
-};
-
-$.map = function(receiver, f) {
-  if (!$.isJsArray(receiver))
-    return receiver.map$1(f);
-  else
-    return $.Collections_map(receiver, [], f);
 };
 
 $._fillStatics = function(context) {
@@ -6003,7 +6035,7 @@ $._convertNativeToDart_IDBKey = function(nativeKey) {
 $._initialize = function() {
   if (!($._jsPortSync == null))
     return;
-  $._inject('(function() {\n  // Proxy support\n\n  // Table for local objects and functions that are proxied.\n  // TODO(vsm): Merge into one.\n  function ProxiedReferenceTable(name) {\n    // Name for debugging.\n    this.name = name;\n\n    // Table from IDs to JS objects.\n    this.map = {};\n\n    // Generator for new IDs.\n    this._nextId = 0;\n\n    // Counter for deleted proxies.\n    this._deletedCount = 0;\n\n    // Flag for one-time initialization.\n    this._initialized = false;\n\n    // Ports for managing communication to proxies.\n    this.port = new ReceivePortSync();\n    this.sendPort = this.port.toSendPort();\n\n    // Set of IDs that are global.\n    // These will not be freed on an exitScope().\n    this.globalIds = {};\n\n    // Stack of scoped handles.\n    this.handleStack = [];\n\n    // Stack of active scopes where each value is represented by the size of\n    // the handleStack at the beginning of the scope.  When an active scope\n    // is popped, the handleStack is restored to where it was when the\n    // scope was entered.\n    this.scopeIndices = [];\n  }\n\n  // Number of valid IDs.  This is the number of objects (global and local)\n  // kept alive by this table.\n  ProxiedReferenceTable.prototype.count = function () {\n    return Object.keys(this.map).length;\n  }\n\n  // Number of total IDs ever allocated.\n  ProxiedReferenceTable.prototype.total = function () {\n    return this.count() + this._deletedCount;\n  }\n\n  // Adds an object to the table and return an ID for serialization.\n  ProxiedReferenceTable.prototype.add = function (obj) {\n    if (this.scopeIndices.length == 0) {\n      throw "Cannot allocate a proxy outside of a scope.";\n    }\n    // TODO(vsm): Cache refs for each obj?\n    var ref = this.name + \'-\' + this._nextId++;\n    this.handleStack.push(ref);\n    this.map[ref] = obj;\n    return ref;\n  }\n\n  ProxiedReferenceTable.prototype._initializeOnce = function () {\n    if (!this._initialized) {\n      this._initialize();\n    }\n    this._initialized = true;\n  }\n\n  // Overridable initialization on first use hook.\n  ProxiedReferenceTable.prototype._initialize = function () {}\n\n  // Enters a new scope for this table.\n  ProxiedReferenceTable.prototype.enterScope = function() {\n    this._initializeOnce();\n    this.scopeIndices.push(this.handleStack.length);\n  }\n  \n  // Invalidates all non-global IDs in the current scope and\n  // exit the current scope.\n  ProxiedReferenceTable.prototype.exitScope = function() {\n    var start = this.scopeIndices.pop();\n    for (var i = start; i < this.handleStack.length; ++i) {\n      var key = this.handleStack[i];\n      if (!this.globalIds.hasOwnProperty(key)) {\n        delete this.map[this.handleStack[i]];\n        this._deletedCount++;\n      }\n    }\n    this.handleStack = this.handleStack.splice(0, start);\n  }\n  \n  // Makes this ID globally scope.  It must be explicitly invalidated.\n  ProxiedReferenceTable.prototype.globalize = function(id) {\n    this.globalIds[id] = true;\n  }\n\n  // Invalidates this ID, potentially freeing its corresponding object.\n  ProxiedReferenceTable.prototype.invalidate = function(id) {\n    var old = this.get(id);\n    delete this.globalIds[id];\n    delete this.map[id];\n    this._deletedCount++;\n    return old;\n  }\n\n  // Gets the object or function corresponding to this ID.\n  ProxiedReferenceTable.prototype.get = function (id) {\n    if (!this.map.hasOwnProperty(id)) {\n      throw \'Proxy \' + id + \' has been invalidated.\'\n    }\n    return this.map[id];\n  }\n\n  // Subtype for managing function proxies.\n  function ProxiedFunctionTable() {}\n\n  ProxiedFunctionTable.prototype = new ProxiedReferenceTable(\'func-ref\');\n\n  ProxiedFunctionTable.prototype._initialize = function () {\n    // Configure this table\'s port to invoke the corresponding function given\n    // its ID.\n    // TODO(vsm): Should we enter / exit a scope?\n    var table = this;\n\n    this.port.receive(function (message) {\n      var id = message[0];\n      var args = message[1].map(deserialize);\n      var f = table.get(id);\n      // TODO(vsm): Should we capture _this_ automatically?\n      return serialize(f.apply(null, args));\n    });\n  }\n\n  // The singleton table for proxied local functions.\n  var proxiedFunctionTable = new ProxiedFunctionTable();\n\n  // Subtype for proxied local objects.\n  function ProxiedObjectTable() {}\n\n  ProxiedObjectTable.prototype = new ProxiedReferenceTable(\'js-ref\');\n\n  ProxiedObjectTable.prototype._initialize = function () {\n    // Configure this table\'s port to forward methods, getters, and setters\n    // from the remote proxy to the local object.\n    var table = this;\n\n    this.port.receive(function (message) {\n      // TODO(vsm): Support a mechanism to register a handler here.\n      var receiver = table.get(message[0]);\n      var method = message[1];\n      var args = message[2].map(deserialize);\n      if (method.indexOf("get:") == 0) {\n        // Getter.\n        var field = method.substring(4);\n        if (field in receiver && args.length == 0) {\n          return [ \'return\', serialize(receiver[field]) ];\n        }\n      } else if (method.indexOf("set:") == 0) {\n        // Setter.\n        var field = method.substring(4);\n        if (args.length == 1) {\n          return [ \'return\', serialize(receiver[field] = args[0]) ];\n        }\n      } else if (method == \'[]\' && args.length == 1) {\n        // Index getter.\n        return [ \'return\', serialize(receiver[args[0]]) ];\n      } else {\n        var f = receiver[method];\n        if (f) {\n          try {\n            var result = f.apply(receiver, args);\n            return [ \'return\', serialize(result) ];\n          } catch (e) {\n            return [ \'exception\', serialize(e) ];\n          }\n        }\n      }\n      return [ \'none\' ];\n    });\n  }\n\n  // Singleton for local proxied objects.\n  var proxiedObjectTable = new ProxiedObjectTable();\n\n  // DOM element serialization code.\n  var _localNextElementId = 0;\n  var _DART_ID = \'data-dart_id\';\n\n  function serializeElement(e) {\n    // TODO(vsm): Check for collisions with existing DOM nodes.\n    if (e.hasAttribute(_DART_ID)) return e.getAttribute(_DART_ID);\n    var id = (_localNextElementId++).toString();\n    e.setAttribute(_DART_ID, id);\n    return id;\n  }\n\n  function deserializeElement(id) {\n    // TODO(vsm): Clear the attribute.\n    var list = document.querySelectorAll(\'[\' + _DART_ID + \'="\' + id + \'"]\');\n\n    if (list.length > 1) throw \'Non unique ID: \' + id;\n    if (list.length == 0) {\n      throw \'Element must be attached to the document: \' + id;\n    }\n    return list[0];\n  }\n\n\n  // Type for remote proxies to Dart objects.\n  function DartProxy(id, sendPort) {\n    this.id = id;\n    this.port = sendPort;\n  }\n\n  // Serializes JS types to SendPortSync format:\n  // - primitives -> primitives\n  // - sendport -> sendport\n  // - DOM element -> [ \'domref\', element-id ]\n  // - Function -> [ \'funcref\', function-id, sendport ]\n  // - Object -> [ \'objref\', object-id, sendport ]\n  function serialize(message) {\n    if (message == null) {\n      return null;  // Convert undefined to null.\n    } else if (typeof(message) == \'string\' ||\n               typeof(message) == \'number\' ||\n               typeof(message) == \'boolean\') {\n      // Primitives are passed directly through.\n      return message;\n    } else if (message instanceof SendPortSync) {\n      // Non-proxied objects are serialized.\n      return message;\n    } else if (message instanceof Element) {\n      return [ \'domref\', serializeElement(message) ];\n    } else if (typeof(message) == \'function\') {\n      if (\'_dart_id\' in message) {\n        // Remote function proxy.\n        var remoteId = message._dart_id;\n        var remoteSendPort = message._dart_port;\n        return [ \'funcref\', remoteId, remoteSendPort ];\n      } else {\n        // Local function proxy.\n        return [ \'funcref\',\n                 proxiedFunctionTable.add(message),\n                 proxiedFunctionTable.sendPort ];\n      }\n    } else if (message instanceof DartProxy) {\n      // Remote object proxy.\n      return [ \'objref\', message.id, message.port ];\n    } else {\n      // Local object proxy.\n      return [ \'objref\',\n               proxiedObjectTable.add(message),\n               proxiedObjectTable.sendPort ];\n    }\n  }\n\n  function deserialize(message) {\n    if (message == null) {\n      return null;  // Convert undefined to null.\n    } else if (typeof(message) == \'string\' ||\n               typeof(message) == \'number\' ||\n               typeof(message) == \'boolean\') {\n      // Primitives are passed directly through.\n      return message;\n    } else if (message instanceof SendPortSync) {\n      // Serialized type.\n      return message;\n    }\n    var tag = message[0];\n    switch (tag) {\n      case \'funcref\': return deserializeFunction(message);\n      case \'objref\': return deserializeObject(message);\n      case \'domref\': return deserializeElement(message[1]);\n    }\n    throw \'Unsupported serialized data: \' + message;\n  }\n\n  // Create a local function that forwards to the remote function.\n  function deserializeFunction(message) {\n    var id = message[1];\n    var port = message[2];\n    // TODO(vsm): Add a more robust check for a local SendPortSync.\n    if ("receivePort" in port) {\n      // Local function.\n      return proxiedFunctionTable.get(id);\n    } else {\n      // Remote function.  Forward to its port.\n      var f = function () {\n        enterScope();\n        try {\n          var args = Array.prototype.slice.apply(arguments).map(serialize);\n          var result = port.callSync([id, args]);\n          return deserialize(result);\n        } finally {\n          exitScope();\n        }\n      };\n      // Cache the remote id and port.\n      f._dart_id = id;\n      f._dart_port = port;\n      return f;\n    }\n  }\n\n  // Creates a DartProxy to forwards to the remote object.\n  function deserializeObject(message) {\n    var id = message[1];\n    var port = message[2];\n    // TODO(vsm): Add a more robust check for a local SendPortSync.\n    if ("receivePort" in port) {\n      // Local object.\n      return proxiedObjectTable.get(id);\n    } else {\n      // Remote object.\n      return new DartProxy(id, port);\n    }\n  }\n\n  // Remote handler to construct a new JavaScript object given its\n  // serialized constructor and arguments.\n  function construct(args) {\n    args = args.map(deserialize);\n    var constructor = args[0];\n    args = Array.prototype.slice.call(args, 1);\n\n    // Dummy Type with correct constructor.\n    var Type = function(){};\n    Type.prototype = constructor.prototype;\n\n    // Create a new instance\n    var instance = new Type();\n\n    // Call the original constructor.\n    var ret = constructor.apply(instance, args);\n\n    return serialize(Object(ret) === ret ? ret : instance);\n  }\n\n  // Remote handler to evaluate a string in JavaScript and return a serialized\n  // result. \n  function evaluate(data) {\n    return serialize(eval(deserialize(data))); \n  }\n\n  // Remote handler for debugging.\n  function debug() {\n    var live = proxiedObjectTable.count() + proxiedFunctionTable.count();\n    var total = proxiedObjectTable.total() + proxiedFunctionTable.total();\n    return \'JS objects Live : \' + live +\n           \' (out of \' + total + \' ever allocated).\';\n  }\n\n  function makeGlobalPort(name, f) {\n    var port = new ReceivePortSync();\n    port.receive(f);\n    window.registerPort(name, port.toSendPort());\n  }\n\n  // Enters a new scope in the JavaScript context.\n  function enterScope() {\n    proxiedObjectTable.enterScope();\n    proxiedFunctionTable.enterScope();\n  }\n\n  // Exits the current scope (and invalidate local IDs) in the JavaScript\n  // context.\n  function exitScope() {\n    proxiedFunctionTable.exitScope();\n    proxiedObjectTable.exitScope();\n  }\n\n  makeGlobalPort(\'dart-js-evaluate\', evaluate);\n  makeGlobalPort(\'dart-js-create\', construct);\n  makeGlobalPort(\'dart-js-debug\', debug);\n  makeGlobalPort(\'dart-js-enter-scope\', enterScope);\n  makeGlobalPort(\'dart-js-exit-scope\', exitScope);\n  makeGlobalPort(\'dart-js-globalize\', function(data) {\n    if (data[0] == "objref") return proxiedObjectTable.globalize(data[1]);\n    // TODO(vsm): Do we ever need to globalize functions?\n    throw \'Illegal type: \' + data[0];\n  });\n  makeGlobalPort(\'dart-js-invalidate\', function(data) {\n    if (data[0] == "objref") return proxiedObjectTable.invalidate(data[1]);\n    // TODO(vsm): Do we ever need to globalize functions?\n    throw \'Illegal type: \' + data[0];\n  });\n})();\n');
+  $._inject('(function() {\n  // Proxy support\n\n  // Table for local objects and functions that are proxied.\n  // TODO(vsm): Merge into one.\n  function ProxiedReferenceTable(name) {\n    // Name for debugging.\n    this.name = name;\n\n    // Table from IDs to JS objects.\n    this.map = {};\n\n    // Generator for new IDs.\n    this._nextId = 0;\n\n    // Counter for deleted proxies.\n    this._deletedCount = 0;\n\n    // Flag for one-time initialization.\n    this._initialized = false;\n\n    // Ports for managing communication to proxies.\n    this.port = new ReceivePortSync();\n    this.sendPort = this.port.toSendPort();\n\n    // Set of IDs that are global.\n    // These will not be freed on an exitScope().\n    this.globalIds = {};\n\n    // Stack of scoped handles.\n    this.handleStack = [];\n\n    // Stack of active scopes where each value is represented by the size of\n    // the handleStack at the beginning of the scope.  When an active scope\n    // is popped, the handleStack is restored to where it was when the\n    // scope was entered.\n    this.scopeIndices = [];\n  }\n\n  // Number of valid IDs.  This is the number of objects (global and local)\n  // kept alive by this table.\n  ProxiedReferenceTable.prototype.count = function () {\n    return Object.keys(this.map).length;\n  }\n\n  // Number of total IDs ever allocated.\n  ProxiedReferenceTable.prototype.total = function () {\n    return this.count() + this._deletedCount;\n  }\n\n  // Adds an object to the table and return an ID for serialization.\n  ProxiedReferenceTable.prototype.add = function (obj) {\n    if (this.scopeIndices.length == 0) {\n      throw "Cannot allocate a proxy outside of a scope.";\n    }\n    // TODO(vsm): Cache refs for each obj?\n    var ref = this.name + \'-\' + this._nextId++;\n    this.handleStack.push(ref);\n    this.map[ref] = obj;\n    return ref;\n  }\n\n  ProxiedReferenceTable.prototype._initializeOnce = function () {\n    if (!this._initialized) {\n      this._initialize();\n    }\n    this._initialized = true;\n  }\n\n  // Overridable initialization on first use hook.\n  ProxiedReferenceTable.prototype._initialize = function () {}\n\n  // Enters a new scope for this table.\n  ProxiedReferenceTable.prototype.enterScope = function() {\n    this._initializeOnce();\n    this.scopeIndices.push(this.handleStack.length);\n  }\n  \n  // Invalidates all non-global IDs in the current scope and\n  // exit the current scope.\n  ProxiedReferenceTable.prototype.exitScope = function() {\n    var start = this.scopeIndices.pop();\n    for (var i = start; i < this.handleStack.length; ++i) {\n      var key = this.handleStack[i];\n      if (!this.globalIds.hasOwnProperty(key)) {\n        delete this.map[this.handleStack[i]];\n        this._deletedCount++;\n      }\n    }\n    this.handleStack = this.handleStack.splice(0, start);\n  }\n  \n  // Makes this ID globally scope.  It must be explicitly invalidated.\n  ProxiedReferenceTable.prototype.globalize = function(id) {\n    this.globalIds[id] = true;\n  }\n\n  // Invalidates this ID, potentially freeing its corresponding object.\n  ProxiedReferenceTable.prototype.invalidate = function(id) {\n    var old = this.get(id);\n    delete this.globalIds[id];\n    delete this.map[id];\n    this._deletedCount++;\n    return old;\n  }\n\n  // Gets the object or function corresponding to this ID.\n  ProxiedReferenceTable.prototype.get = function (id) {\n    if (!this.map.hasOwnProperty(id)) {\n      throw \'Proxy \' + id + \' has been invalidated.\'\n    }\n    return this.map[id];\n  }\n\n  // Subtype for managing function proxies.\n  function ProxiedFunctionTable() {}\n\n  ProxiedFunctionTable.prototype = new ProxiedReferenceTable(\'func-ref\');\n\n  ProxiedFunctionTable.prototype._initialize = function () {\n    // Configure this table\'s port to invoke the corresponding function given\n    // its ID.\n    // TODO(vsm): Should we enter / exit a scope?\n    var table = this;\n\n    this.port.receive(function (message) {\n      var id = message[0];\n      var args = message[1].map(deserialize);\n      var f = table.get(id);\n      // TODO(vsm): Should we capture _this_ automatically?\n      return serialize(f.apply(null, args));\n    });\n  }\n\n  // The singleton table for proxied local functions.\n  var proxiedFunctionTable = new ProxiedFunctionTable();\n\n  // Subtype for proxied local objects.\n  function ProxiedObjectTable() {}\n\n  ProxiedObjectTable.prototype = new ProxiedReferenceTable(\'js-ref\');\n\n  ProxiedObjectTable.prototype._initialize = function () {\n    // Configure this table\'s port to forward methods, getters, and setters\n    // from the remote proxy to the local object.\n    var table = this;\n\n    this.port.receive(function (message) {\n      // TODO(vsm): Support a mechanism to register a handler here.\n      var receiver = table.get(message[0]);\n      var method = message[1];\n      var args = message[2].map(deserialize);\n      if (method.indexOf("get:") == 0) {\n        // Getter.\n        var field = method.substring(4);\n        if (field in receiver && args.length == 0) {\n          return [ \'return\', serialize(receiver[field]) ];\n        }\n      } else if (method.indexOf("set:") == 0) {\n        // Setter.\n        var field = method.substring(4);\n        if (args.length == 1) {\n          return [ \'return\', serialize(receiver[field] = args[0]) ];\n        }\n      } else if (method == \'[]\' && args.length == 1) {\n        // Index getter.\n        return [ \'return\', serialize(receiver[args[0]]) ];\n      } else {\n        var f = receiver[method];\n        if (f) {\n          try {\n            var result = f.apply(receiver, args);\n            return [ \'return\', serialize(result) ];\n          } catch (e) {\n            return [ \'exception\', serialize(e) ];\n          }\n        }\n      }\n      return [ \'none\' ];\n    });\n  }\n\n  // Singleton for local proxied objects.\n  var proxiedObjectTable = new ProxiedObjectTable();\n\n  // DOM element serialization code.\n  var _localNextElementId = 0;\n  var _DART_ID = \'data-dart_id\';\n  var _DART_TEMPORARY_ATTACHED = \'data-dart_temporary_attached\';\n\n  function serializeElement(e) {\n    // TODO(vsm): Use an isolate-specific id.\n    var id;\n    if (e.hasAttribute(_DART_ID)) {\n      id = e.getAttribute(_DART_ID);\n    } else {\n      id = (_localNextElementId++).toString();\n      e.setAttribute(_DART_ID, id);\n    }\n    if (e !== document.documentElement) {\n      // Element must be attached to DOM to be retrieve in js part.\n      // Attach top unattached parent to avoid detaching parent of "e" when\n      // appending "e" directly to document. We keep count of elements\n      // temporarily attached to prevent detaching top unattached parent to\n      // early. This count is equals to the length of _DART_TEMPORARY_ATTACHED\n      // attribute. There could be other elements to serialize having the same\n      // top unattached parent.\n      var top = e;\n      while (true) {\n        if (top.hasAttribute(_DART_TEMPORARY_ATTACHED)) {\n          var oldValue = top.getAttribute(_DART_TEMPORARY_ATTACHED);\n          var newValue = oldValue + "a";\n          top.setAttribute(_DART_TEMPORARY_ATTACHED, newValue);\n          break;\n        }\n        if (top.parentNode == null) {\n          top.setAttribute(_DART_TEMPORARY_ATTACHED, "a");\n          document.documentElement.appendChild(top);\n          break;\n        }\n        if (top.parentNode === document.documentElement) {\n          // e was already attached to dom\n          break;\n        }\n        top = top.parentNode;\n      }\n    }\n    return id;\n  }\n\n  function deserializeElement(id) {\n    // TODO(vsm): Clear the attribute.\n    var list = document.querySelectorAll(\'[\' + _DART_ID + \'="\' + id + \'"]\');\n\n    if (list.length > 1) throw \'Non unique ID: \' + id;\n    if (list.length == 0) {\n      throw \'Element must be attached to the document: \' + id;\n    }\n    var e = list[0];\n    if (e !== document.documentElement) {\n      // detach temporary attached element\n      var top = e;\n      while (true) {\n        if (top.hasAttribute(_DART_TEMPORARY_ATTACHED)) {\n          var oldValue = top.getAttribute(_DART_TEMPORARY_ATTACHED);\n          var newValue = oldValue.substring(1);\n          top.setAttribute(_DART_TEMPORARY_ATTACHED, newValue);\n          // detach top only if no more elements have to be unserialized\n          if (top.getAttribute(_DART_TEMPORARY_ATTACHED).length === 0) {\n            top.removeAttribute(_DART_TEMPORARY_ATTACHED);\n            document.documentElement.removeChild(top);\n          }\n          break;\n        }\n        if (top.parentNode === document.documentElement) {\n          // e was already attached to dom\n          break;\n        }\n        top = top.parentNode;\n      }\n    }\n    return e;\n  }\n\n\n  // Type for remote proxies to Dart objects.\n  function DartProxy(id, sendPort) {\n    this.id = id;\n    this.port = sendPort;\n  }\n\n  // Serializes JS types to SendPortSync format:\n  // - primitives -> primitives\n  // - sendport -> sendport\n  // - DOM element -> [ \'domref\', element-id ]\n  // - Function -> [ \'funcref\', function-id, sendport ]\n  // - Object -> [ \'objref\', object-id, sendport ]\n  function serialize(message) {\n    if (message == null) {\n      return null;  // Convert undefined to null.\n    } else if (typeof(message) == \'string\' ||\n               typeof(message) == \'number\' ||\n               typeof(message) == \'boolean\') {\n      // Primitives are passed directly through.\n      return message;\n    } else if (message instanceof SendPortSync) {\n      // Non-proxied objects are serialized.\n      return message;\n    } else if (message instanceof Element) {\n      return [ \'domref\', serializeElement(message) ];\n    } else if (typeof(message) == \'function\') {\n      if (\'_dart_id\' in message) {\n        // Remote function proxy.\n        var remoteId = message._dart_id;\n        var remoteSendPort = message._dart_port;\n        return [ \'funcref\', remoteId, remoteSendPort ];\n      } else {\n        // Local function proxy.\n        return [ \'funcref\',\n                 proxiedFunctionTable.add(message),\n                 proxiedFunctionTable.sendPort ];\n      }\n    } else if (message instanceof DartProxy) {\n      // Remote object proxy.\n      return [ \'objref\', message.id, message.port ];\n    } else {\n      // Local object proxy.\n      return [ \'objref\',\n               proxiedObjectTable.add(message),\n               proxiedObjectTable.sendPort ];\n    }\n  }\n\n  function deserialize(message) {\n    if (message == null) {\n      return null;  // Convert undefined to null.\n    } else if (typeof(message) == \'string\' ||\n               typeof(message) == \'number\' ||\n               typeof(message) == \'boolean\') {\n      // Primitives are passed directly through.\n      return message;\n    } else if (message instanceof SendPortSync) {\n      // Serialized type.\n      return message;\n    }\n    var tag = message[0];\n    switch (tag) {\n      case \'funcref\': return deserializeFunction(message);\n      case \'objref\': return deserializeObject(message);\n      case \'domref\': return deserializeElement(message[1]);\n    }\n    throw \'Unsupported serialized data: \' + message;\n  }\n\n  // Create a local function that forwards to the remote function.\n  function deserializeFunction(message) {\n    var id = message[1];\n    var port = message[2];\n    // TODO(vsm): Add a more robust check for a local SendPortSync.\n    if ("receivePort" in port) {\n      // Local function.\n      return proxiedFunctionTable.get(id);\n    } else {\n      // Remote function.  Forward to its port.\n      var f = function () {\n        enterScope();\n        try {\n          var args = Array.prototype.slice.apply(arguments).map(serialize);\n          var result = port.callSync([id, args]);\n          return deserialize(result);\n        } finally {\n          exitScope();\n        }\n      };\n      // Cache the remote id and port.\n      f._dart_id = id;\n      f._dart_port = port;\n      return f;\n    }\n  }\n\n  // Creates a DartProxy to forwards to the remote object.\n  function deserializeObject(message) {\n    var id = message[1];\n    var port = message[2];\n    // TODO(vsm): Add a more robust check for a local SendPortSync.\n    if ("receivePort" in port) {\n      // Local object.\n      return proxiedObjectTable.get(id);\n    } else {\n      // Remote object.\n      return new DartProxy(id, port);\n    }\n  }\n\n  // Remote handler to construct a new JavaScript object given its\n  // serialized constructor and arguments.\n  function construct(args) {\n    args = args.map(deserialize);\n    var constructor = args[0];\n    args = Array.prototype.slice.call(args, 1);\n\n    // Dummy Type with correct constructor.\n    var Type = function(){};\n    Type.prototype = constructor.prototype;\n\n    // Create a new instance\n    var instance = new Type();\n\n    // Call the original constructor.\n    var ret = constructor.apply(instance, args);\n\n    return serialize(Object(ret) === ret ? ret : instance);\n  }\n\n  // Remote handler to evaluate a string in JavaScript and return a serialized\n  // result. \n  function evaluate(data) {\n    return serialize(eval(deserialize(data))); \n  }\n\n  // Remote handler for debugging.\n  function debug() {\n    var live = proxiedObjectTable.count() + proxiedFunctionTable.count();\n    var total = proxiedObjectTable.total() + proxiedFunctionTable.total();\n    return \'JS objects Live : \' + live +\n           \' (out of \' + total + \' ever allocated).\';\n  }\n\n  function makeGlobalPort(name, f) {\n    var port = new ReceivePortSync();\n    port.receive(f);\n    window.registerPort(name, port.toSendPort());\n  }\n\n  // Enters a new scope in the JavaScript context.\n  function enterScope() {\n    proxiedObjectTable.enterScope();\n    proxiedFunctionTable.enterScope();\n  }\n\n  // Exits the current scope (and invalidate local IDs) in the JavaScript\n  // context.\n  function exitScope() {\n    proxiedFunctionTable.exitScope();\n    proxiedObjectTable.exitScope();\n  }\n\n  makeGlobalPort(\'dart-js-evaluate\', evaluate);\n  makeGlobalPort(\'dart-js-create\', construct);\n  makeGlobalPort(\'dart-js-debug\', debug);\n  makeGlobalPort(\'dart-js-enter-scope\', enterScope);\n  makeGlobalPort(\'dart-js-exit-scope\', exitScope);\n  makeGlobalPort(\'dart-js-globalize\', function(data) {\n    if (data[0] == "objref") return proxiedObjectTable.globalize(data[1]);\n    // TODO(vsm): Do we ever need to globalize functions?\n    throw \'Illegal type: \' + data[0];\n  });\n  makeGlobalPort(\'dart-js-invalidate\', function(data) {\n    if (data[0] == "objref") return proxiedObjectTable.invalidate(data[1]);\n    // TODO(vsm): Do we ever need to globalize functions?\n    throw \'Illegal type: \' + data[0];\n  });\n})();\n');
   $._jsPortSync = $.window().lookupPort$1('dart-js-evaluate');
   $._jsPortCreate = $.window().lookupPort$1('dart-js-create');
   $._jsPortDebug = $.window().lookupPort$1('dart-js-debug');
@@ -6215,7 +6247,26 @@ $._deserializeElement = function(id) {
     throw $.$$throw('Non unique ID: ' + $.S(id));
   if ($.eqB($.get$length(list), 0))
     throw $.$$throw('Only elements attached to document can be serialized: ' + $.S(id));
-  return $.index(list, 0);
+  var e = $.index(list, 0);
+  var t1 = $.document().get$documentElement();
+  if (!(e == null ? t1 == null : e === t1))
+    for (var top$ = e; true;) {
+      if (top$.get$attributes().containsKey$1('data-dart_temporary_attached') === true) {
+        var newValue = $.substring$1($.index(top$.get$attributes(), 'data-dart_temporary_attached'), 1);
+        $.indexSet(top$.get$attributes(), 'data-dart_temporary_attached', newValue);
+        if ($.eqB($.get$length($.index(top$.get$attributes(), 'data-dart_temporary_attached')), 0)) {
+          top$.get$attributes().remove$1('data-dart_temporary_attached');
+          top$.remove$0();
+        }
+        break;
+      }
+      t1 = top$.get$parent();
+      var t2 = $.document().get$documentElement();
+      if (t1 == null ? t2 == null : t1 === t2)
+        break;
+      top$ = top$.get$parent();
+    }
+  return e;
 };
 
 $._IDBDatabaseEventsImpl$ = function(_ptr) {
@@ -6313,6 +6364,13 @@ $._Device_isIE = function() {
   return $._Device_isOpera() !== true && $.contains$2($._Device_userAgent(), 'MSIE', 0) === true;
 };
 
+$.map = function(receiver, f) {
+  if (!$.isJsArray(receiver))
+    return receiver.map$1(f);
+  else
+    return $.Collections_map(receiver, [], f);
+};
+
 $.startRootIsolate = function(entry) {
   var t1 = $._Manager$();
   $._globalState0(t1);
@@ -6387,6 +6445,12 @@ $.Primitives_stringFromCharCodes = function(charCodes) {
       throw $.$$throw($.ArgumentError$(t2));
   }
   return String.fromCharCode.apply(null, charCodes);
+};
+
+$.Collections_map = function(source, destination, f) {
+  for (var t1 = $.iterator(source); t1.hasNext$0() === true;)
+    destination.push(f.call$1(t1.next$0()));
+  return destination;
 };
 
 $._convertNativeToDart_IDBAny = function(object) {
@@ -6659,6 +6723,12 @@ $._ElementFactoryProvider_createElement_tag = function(tag) {
 return document.createElement(tag)
 };
 
+$._Collections_map = function(source, destination, f) {
+  for (var t1 = $.iterator(source); t1.hasNext$0() === true;)
+    destination.push(f.call$1(t1.next$0()));
+  return destination;
+};
+
 $.eq = function(a, b) {
   if (a == null)
     return b == null;
@@ -6916,7 +6986,7 @@ $.getFunctionForTypeNameOf = function() {
     return $.typeNameInIE;
   else if ($.contains(userAgent, 'Opera'))
     return $.typeNameInOpera;
-  else if ($.contains(userAgent, 'Safari'))
+  else if ($.contains(userAgent, 'AppleWebKit'))
     return $.typeNameInSafari;
   else
     return $.constructorNameFallback;
@@ -6930,12 +7000,6 @@ $._JsonStringifier_stringify = function(object) {
   var output = $.StringBuffer_StringBuffer('');
   $._JsonStringifier$(output).stringifyValue$1(object);
   return $.toString(output);
-};
-
-$.Collections_map = function(source, destination, f) {
-  for (var t1 = $.iterator(source); t1.hasNext$0() === true;)
-    destination.push(f.call$1(t1.next$0()));
-  return destination;
 };
 
 $.indexSet$slow = function(a, index, value) {
@@ -7131,10 +7195,11 @@ $.Primitives_printString = function(string) {
     console.log(string);
     return;
   }
-  if (typeof write == "function") {
-    write(string);
-    write("\n");
+  if (typeof print == "function") {
+    print(string);
+    return;
   }
+  throw $.$$throw('Unable to print message: ' + $.S($.NoSuchMethodError_safeToString(string)));
 };
 
 $.JsonUnsupportedObjectError$ = function(unsupportedObject) {
@@ -7167,12 +7232,12 @@ $.typeNameInFirefox = function(obj) {
   return name$;
 };
 
-$._WorkerEventsImpl$ = function(_ptr) {
-  return new $._WorkerEventsImpl(_ptr);
-};
-
 $.ExceptionImplementation$ = function(message) {
   return new $.ExceptionImplementation(message);
+};
+
+$._WorkerEventsImpl$ = function(_ptr) {
+  return new $._WorkerEventsImpl(_ptr);
 };
 
 $.sub$slow = function(a, b) {
@@ -7233,13 +7298,6 @@ $._globalState = function() {
 return $globalState;
 };
 
-$.addLast = function(receiver, value) {
-  if (!$.isJsArray(receiver))
-    return receiver.addLast$1(value);
-  $.checkGrowable(receiver, 'addLast');
-  receiver.push(value);
-};
-
 $.substring$2 = function(receiver, startIndex, endIndex) {
   if (!(typeof receiver === 'string'))
     return receiver.substring$2(startIndex, endIndex);
@@ -7261,16 +7319,6 @@ $.ScriptElement_ScriptElement = function() {
   return $._Elements_createScriptElement();
 };
 
-$.removeLast = function(receiver) {
-  if ($.isJsArray(receiver)) {
-    $.checkGrowable(receiver, 'removeLast');
-    if ($.get$length(receiver) === 0)
-      throw $.$$throw($.IndexOutOfRangeException$(-1));
-    return receiver.pop();
-  }
-  return receiver.removeLast$0();
-};
-
 $._globalState0 = function(val) {
 $globalState = val;
 };
@@ -7283,6 +7331,23 @@ $._proxiedFunctionTable = function() {
 
 $.window = function() {
 return window;
+};
+
+$.addLast = function(receiver, value) {
+  if (!$.isJsArray(receiver))
+    return receiver.addLast$1(value);
+  $.checkGrowable(receiver, 'addLast');
+  receiver.push(value);
+};
+
+$.removeLast = function(receiver) {
+  if ($.isJsArray(receiver)) {
+    $.checkGrowable(receiver, 'removeLast');
+    if ($.get$length(receiver) === 0)
+      throw $.$$throw($.IndexOutOfRangeException$(-1));
+    return receiver.pop();
+  }
+  return receiver.removeLast$0();
 };
 
 $.HashMapImplementation$ = function() {
@@ -7321,12 +7386,6 @@ $.HashMapImplementation__computeLoadLimit = function(capacity) {
 
 $.DivElement_DivElement = function() {
   return $._Elements_createDivElement();
-};
-
-$._Collections_map = function(source, destination, f) {
-  for (var t1 = $.iterator(source); t1.hasNext$0() === true;)
-    destination.push(f.call$1(t1.next$0()));
-  return destination;
 };
 
 $._WindowEventsImpl$ = function(_ptr) {
@@ -7634,6 +7693,13 @@ $.Arrays_indexOf = function(a, element, startIndex, endIndex) {
   return -1;
 };
 
+$.filter = function(receiver, predicate) {
+  if (!$.isJsArray(receiver))
+    return receiver.filter$1(predicate);
+  else
+    return $.Collections_filter(receiver, [], predicate);
+};
+
 $._TextTrackCueEventsImpl$ = function(_ptr) {
   return new $._TextTrackCueEventsImpl(_ptr);
 };
@@ -7676,13 +7742,6 @@ $._Lists_indexOf = function(a, element, startIndex, endIndex) {
   return -1;
 };
 
-$.filter = function(receiver, predicate) {
-  if (!$.isJsArray(receiver))
-    return receiver.filter$1(predicate);
-  else
-    return $.Collections_filter(receiver, [], predicate);
-};
-
 $.Collections_filter = function(source, destination, f) {
   for (var t1 = $.iterator(source); t1.hasNext$0() === true;) {
     var t2 = t1.next$0();
@@ -7710,12 +7769,12 @@ $.allMatchesInStringUnchecked = function(needle, haystack) {
   return result;
 };
 
-$._SpeechRecognitionEventsImpl$ = function(_ptr) {
-  return new $._SpeechRecognitionEventsImpl(_ptr);
-};
-
 $.contains = function(userAgent, name$) {
   return !(userAgent.indexOf(name$) === -1);
+};
+
+$._SpeechRecognitionEventsImpl$ = function(_ptr) {
+  return new $._SpeechRecognitionEventsImpl(_ptr);
 };
 
 $.ReceivePortSync__lookup = function(isolateId, portId) {
@@ -7725,10 +7784,6 @@ $.ReceivePortSync__lookup = function(isolateId, portId) {
     return $._RemoteSendPortSync$(isolateId, portId);
 };
 
-$._HttpRequestUploadEventsImpl$ = function(_ptr) {
-  return new $._HttpRequestUploadEventsImpl(_ptr);
-};
-
 $._Collections_filter = function(source, destination, f) {
   for (var t1 = $.iterator(source); t1.hasNext$0() === true;) {
     var t2 = t1.next$0();
@@ -7736,6 +7791,10 @@ $._Collections_filter = function(source, destination, f) {
       destination.push(t2);
   }
   return destination;
+};
+
+$._HttpRequestUploadEventsImpl$ = function(_ptr) {
+  return new $._HttpRequestUploadEventsImpl(_ptr);
 };
 
 $.checkNull = function(object) {
@@ -7784,6 +7843,12 @@ $.Proxy$_internal = function(_port, _id) {
 
 $.getTraceFromException = function(exception) {
   return $.StackTrace$(exception.stack);
+};
+
+$.concat = function(receiver, other) {
+  if (!(typeof receiver === 'string'))
+    return receiver.concat$1(other);
+  return receiver + other;
 };
 
 $.Maps__emitMap = function(m, result, visiting) {
@@ -8056,11 +8121,11 @@ Isolate.makeConstantList = function(list) {
   return list;
 };
 $.CTC0 = Isolate.makeConstantList([]);
-$.CTC20 = new Isolate.$isolateProperties.ConstantMap(0, {}, Isolate.$isolateProperties.CTC0);
+$.CTC17 = new Isolate.$isolateProperties.ConstantMap(0, {}, Isolate.$isolateProperties.CTC0);
 $.CTC26 = 'structured clone of ArrayBufferView';
 $.CTC8 = new Isolate.$isolateProperties.NotImplementedException('structured clone of ArrayBufferView');
 $.CTC27 = null;
-$.CTC23 = new Isolate.$isolateProperties.NotImplementedException(null);
+$.CTC22 = new Isolate.$isolateProperties.NotImplementedException(null);
 $.CTC28 = 'structured clone of ArrayBuffer';
 $.CTC7 = new Isolate.$isolateProperties.NotImplementedException('structured clone of ArrayBuffer');
 $.CTC10 = new Isolate.$isolateProperties._DeletedKeySentinel();
@@ -8075,7 +8140,7 @@ $.CTC32 = false;
 $.CTC33 = '[-[\\]{}()*+?.,\\\\^$|#\\s]';
 $.CTC15 = new Isolate.$isolateProperties.JSSyntaxRegExp(false, false, '[-[\\]{}()*+?.,\\\\^$|#\\s]');
 $.CTC34 = 'Incorrect number or type of arguments';
-$.CTC22 = new Isolate.$isolateProperties.ExceptionImplementation('Incorrect number or type of arguments');
+$.CTC24 = new Isolate.$isolateProperties.ExceptionImplementation('Incorrect number or type of arguments');
 $.CTC35 = 'Cannot removeRange on immutable List.';
 $.CTC16 = new Isolate.$isolateProperties.UnsupportedOperationException('Cannot removeRange on immutable List.');
 $.CTC36 = 'structured clone of Blob';
@@ -8083,12 +8148,12 @@ $.CTC5 = new Isolate.$isolateProperties.NotImplementedException('structured clon
 $.CTC37 = 'structured clone of RegExp';
 $.CTC3 = new Isolate.$isolateProperties.NotImplementedException('structured clone of RegExp');
 $.CTC38 = 'Invalid list length';
-$.CTC24 = new Isolate.$isolateProperties.ArgumentError('Invalid list length');
+$.CTC23 = new Isolate.$isolateProperties.ArgumentError('Invalid list length');
 $.CTC39 = '^\\[name=["\'][^\'"]+[\'"]\\]$';
-$.CTC18 = new Isolate.$isolateProperties.JSSyntaxRegExp(false, false, '^\\[name=["\'][^\'"]+[\'"]\\]$');
+$.CTC20 = new Isolate.$isolateProperties.JSSyntaxRegExp(false, false, '^\\[name=["\'][^\'"]+[\'"]\\]$');
+$.CTC18 = new Isolate.$isolateProperties.IllegalAccessException();
 $.CTC40 = '^[*a-zA-Z0-9]+$';
-$.CTC19 = new Isolate.$isolateProperties.JSSyntaxRegExp(false, false, '^[*a-zA-Z0-9]+$');
-$.CTC21 = new Isolate.$isolateProperties.IllegalAccessException();
+$.CTC21 = new Isolate.$isolateProperties.JSSyntaxRegExp(false, false, '^[*a-zA-Z0-9]+$');
 $.CTC41 = 'structured clone of File';
 $.CTC4 = new Isolate.$isolateProperties.NotImplementedException('structured clone of File');
 $.CTC42 = 'structured clone of other type';
@@ -8097,7 +8162,7 @@ $.CTC43 = 'structured clone of ImageData';
 $.CTC6 = new Isolate.$isolateProperties.NotImplementedException('structured clone of ImageData');
 $.CTC = new Isolate.$isolateProperties.NullPointerException(null, Isolate.$isolateProperties.CTC0);
 $.CTC44 = '';
-$.CTC17 = new Isolate.$isolateProperties.UnsupportedOperationException('');
+$.CTC19 = new Isolate.$isolateProperties.UnsupportedOperationException('');
 $.CTC13 = new Isolate.$isolateProperties.EmptyQueueException();
 $.CTC11 = new Isolate.$isolateProperties.NoMoreElementsException();
 $.CTC45 = 'Cannot removeLast on immutable List.';
@@ -8172,6 +8237,7 @@ $.__deserializedFunctionTable = null;
 $._DART_ID = 'data-dart_id';
 $._JsonParser_TRUE_STRING = 'true';
 $._JsonParser_FORM_FEED = 12;
+$._DART_TEMPORARY_ATTACHED = 'data-dart_temporary_attached';
 var $ = null;
 Isolate.$finishClasses($$);
 $$ = {};
@@ -8858,7 +8924,7 @@ $.$defineNativeClass('DocumentFragment', [], {
   return;
 },
  get$attributes: function() {
-  return $.CTC20;
+  return $.CTC17;
 },
  get$on: function() {
   return $._ElementEventsImpl$(this);
@@ -8869,7 +8935,7 @@ $.$defineNativeClass('DocumentFragment', [], {
  is$Element: function() { return true; }
 });
 
-$.$defineNativeClass('HTMLDocument', ["body?"], {
+$.$defineNativeClass('HTMLDocument', ["body?", "documentElement?"], {
  get$on: function() {
   return $._DocumentEventsImpl$(this);
 },
@@ -8896,7 +8962,7 @@ $.$defineNativeClass('HTMLDocument', ["body?"], {
   return this.querySelectorAll(selectors);
 },
  queryAll$1: function(selectors) {
-  if ($.CTC18.hasMatch$1(selectors) === true) {
+  if ($.CTC20.hasMatch$1(selectors) === true) {
     var mutableMatches = this.$dom_getElementsByName$1($.substring$2(selectors, 7, selectors.length - 2));
     if (typeof mutableMatches !== 'string' && (typeof mutableMatches !== 'object' || mutableMatches === null || mutableMatches.constructor !== Array && !mutableMatches.is$JavaScriptIndexingBehavior()))
       return this.queryAll$1$bailout(1, mutableMatches);
@@ -8908,7 +8974,7 @@ $.$defineNativeClass('HTMLDocument', ["body?"], {
       copyOfMatches[i] = mutableMatches[i];
     }
     return $._FrozenElementList$_wrap(copyOfMatches);
-  } else if ($.CTC19.hasMatch$1(selectors) === true) {
+  } else if ($.CTC21.hasMatch$1(selectors) === true) {
     mutableMatches = this.$dom_getElementsByTagName$1(selectors);
     if (typeof mutableMatches !== 'string' && (typeof mutableMatches !== 'object' || mutableMatches === null || mutableMatches.constructor !== Array && !mutableMatches.is$JavaScriptIndexingBehavior()))
       return this.queryAll$1$bailout(2, mutableMatches);
@@ -8935,7 +9001,7 @@ $.$defineNativeClass('HTMLDocument', ["body?"], {
   switch (state) {
     case 0:
     default:
-      if (state === 1 || state === 0 && $.CTC18.hasMatch$1(selectors) === true)
+      if (state === 1 || state === 0 && $.CTC20.hasMatch$1(selectors) === true)
         switch (state) {
           case 0:
             var mutableMatches = this.$dom_getElementsByName$1($.substring$2(selectors, 7, selectors.length - 2));
@@ -8955,7 +9021,7 @@ $.$defineNativeClass('HTMLDocument', ["body?"], {
         switch (state) {
           case 0:
           case 2:
-            if (state === 2 || state === 0 && $.CTC19.hasMatch$1(selectors) === true)
+            if (state === 2 || state === 0 && $.CTC21.hasMatch$1(selectors) === true)
               switch (state) {
                 case 0:
                   mutableMatches = this.$dom_getElementsByTagName$1(selectors);
@@ -9746,7 +9812,7 @@ $.$defineNativeClass('IDBIndex', ["name?"], {
     return this._count_2$1(key_OR_range);
   if (t2)
     return this._count_3$1(key_OR_range);
-  throw $.$$throw($.CTC22);
+  throw $.$$throw($.CTC24);
 },
  get$count: function() { return new $.BoundClosure1(this, 'count$1'); },
  _count_1$0: function() {
@@ -9767,7 +9833,7 @@ $.$defineNativeClass('IDBIndex', ["name?"], {
     return this._get_1$1(key);
   if (t1)
     return this._get_2$1(key);
-  throw $.$$throw($.CTC22);
+  throw $.$$throw($.CTC24);
 },
  _get_1$1: function(key) {
   return this.get(key);
@@ -9813,7 +9879,7 @@ $.$defineNativeClass('IDBObjectStore', ["name?"], {
     return this._count_2$1(key_OR_range);
   if (t2)
     return this._count_3$1(key_OR_range);
-  throw $.$$throw($.CTC22);
+  throw $.$$throw($.CTC24);
 },
  get$count: function() { return new $.BoundClosure2(this, 'count$1'); },
  _count_1$0: function() {
@@ -12528,7 +12594,7 @@ $.$defineNativeClass('WebSocket', [], {
 }
 });
 
-$.$defineNativeClass('DOMWindow', ["length?", "name?", "navigator?"], {
+$.$defineNativeClass('DOMWindow', ["length?", "name?", "navigator?", "parent?"], {
  lookupPort$1: function(name$) {
   var port = $.JSON_parse($.index(this.localStorage, 'dart-port:' + name$));
   return $._JsDeserializer$().deserialize$1(port);
