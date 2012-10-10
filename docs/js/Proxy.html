@@ -2,7 +2,7 @@
         <html>
         <head>
                 <meta charset="utf-8">
-        <title>Proxy Class / js Library / Dart Documentation</title>
+        <title>Proxy class / js Library / Dart Documentation</title>
         <link rel="stylesheet" type="text/css"
             href="../styles.css">
         <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
@@ -31,28 +31,64 @@
 </div>
 <div class="content">
         <h2><strong>Proxy</strong>
-          Class
+          class
         </h2>
         
+<button id="show-inherited" class="show-inherited">Hide inherited</button>
 <div class="doc">
 <p>Proxies to JavaScript objects.</p>
 </div>
+<div>
 <h3>Constructors</h3>
-<div class="method"><h4 id="Proxy._internal">
-<span class="show-code">Code</span>
-new <strong>Proxy</strong>._internal(<a href="http://api.dartlang.org/dart_isolate/SendPortSync.html">SendPortSync</a> _port, _id) <a class="anchor-link" href="#Proxy._internal"
+<div class="method"><h4 id="Proxy">
+<button class="show-code">Code</button>
+factory <strong>Proxy</strong>(constructor, [arg1, arg2, arg3, arg4]) <a class="anchor-link" href="#Proxy"
               title="Permalink to Proxy.Proxy">#</a></h4>
 <div class="doc">
-
+<p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript object by invoking a (proxy to a)
+JavaScript 
+<span class="param">constructor</span>.  The arguments should be either
+primitive values, DOM elements, or Proxies.</p>
+<pre class="source">
+factory Proxy(constructor, [arg1, arg2, arg3, arg4]) =&gt;
+    new Proxy.withArgList(constructor, [arg1, arg2, arg3, arg4]);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="Proxy.withArgList">
+<button class="show-code">Code</button>
+factory <strong>Proxy.withArgList</strong>(constructor, <a href="http://api.dartlang.org/dart_core/List.html">List</a> arguments) <a class="anchor-link" href="#Proxy.withArgList"
+              title="Permalink to Proxy.Proxy.withArgList">#</a></h4>
+<div class="doc">
+<p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript object by invoking a (proxy to a)
+JavaScript 
+<span class="param">constructor</span>.  The 
+<span class="param">arguments</span> list should contain either
+primitive values, DOM elements, or Proxies.</p>
+<pre class="source">
+factory Proxy.withArgList(constructor, List arguments) {
+  if (_depth == 0) throw 'Cannot create Proxy out of scope.';
+  final serialized = ([constructor]..addAll(arguments)).map(_serialize);
+  final result = _jsPortCreate.callSync(serialized);
+  return _deserialize(result);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="Proxy._internal">
+<button class="show-code">Code</button>
+new <strong>Proxy._internal</strong>(<a href="http://api.dartlang.org/dart_isolate/SendPortSync.html">SendPortSync</a> _port, _id) <a class="anchor-link" href="#Proxy._internal"
+              title="Permalink to Proxy.Proxy._internal">#</a></h4>
+<div class="doc">
 <pre class="source">
 Proxy._internal(this._port, this._id);
 </pre>
 </div>
 </div>
 <div class="method"><h4 id="Proxy._json">
-<span class="show-code">Code</span>
-factory <strong>Proxy</strong>._json(data) <a class="anchor-link" href="#Proxy._json"
-              title="Permalink to Proxy.Proxy">#</a></h4>
+<button class="show-code">Code</button>
+factory <strong>Proxy._json</strong>(data) <a class="anchor-link" href="#Proxy._json"
+              title="Permalink to Proxy.Proxy._json">#</a></h4>
 <div class="doc">
 <p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript map or list created defined via
 Dart map or list.</p>
@@ -64,39 +100,79 @@ factory Proxy._json(data) {
 </pre>
 </div>
 </div>
-<div class="method"><h4 id="Proxy">
-<span class="show-code">Code</span>
-factory <strong>Proxy</strong>(constructor, [arg1, arg2, arg3, arg4]) <a class="anchor-link" href="#Proxy"
-              title="Permalink to Proxy.Proxy">#</a></h4>
+</div>
+<div>
+<h3>Methods</h3>
+<div class="method"><h4 id="==">
+<button class="show-code">Code</button>
+<strong>operator ==</strong>(<a href="../js/Proxy.html">Proxy</a> other) <a class="anchor-link" href="#=="
+              title="Permalink to Proxy.operator ==">#</a></h4>
 <div class="doc">
-<p>Constructs a <a class="crossref" href="../js/Proxy.html#Proxy">Proxy</a> to a new JavaScript object by invoking a (proxy to a)
-JavaScript 
-<span class="param">constructor</span>.  The arguments should be either
-primitive values, DOM elements, or Proxies.</p>
+<div class="inherited">
+<p>The equality operator.</p>
+<p>The default behavior for all <code>Object</code>s is to return true if and
+only if <code>this</code> and 
+<span class="param">other</span> are the same object.</p>
+<p>If a subclass overrides the equality operator it should override
+the <code>hashCode</code> method as well to maintain consistency.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div></div>
 <pre class="source">
-factory Proxy(constructor, [arg1, arg2, arg3, arg4]) {
-  if (_depth == 0) throw 'Cannot create Proxy out of scope.';
-  var serialized = [constructor, arg1, arg2, arg3, arg4].map(_serialize);
-  var result = _jsPortCreate.callSync(serialized);
-  return _deserialize(result);
-}
+operator==(Proxy other) =&gt; this === other
+    ? true
+    : (other is Proxy &amp;&amp;
+       _jsPortEquals.callSync([_serialize(this), _serialize(other)]));
 </pre>
 </div>
 </div>
-<h3>Methods</h3>
+<div class="method"><h4 id="[]">
+<button class="show-code">Code</button>
+<strong>operator []</strong>(arg) <a class="anchor-link" href="#[]"
+              title="Permalink to Proxy.operator []">#</a></h4>
+<div class="doc">
+<pre class="source">
+operator[](arg) =&gt; noSuchMethod('[]', [ arg ]);
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="hashCode">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/int.html">int</a> <strong>hashCode</strong>() <a class="anchor-link" href="#hashCode"
+              title="Permalink to Proxy.hashCode">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
+<p>Get a hash code for this object.</p>
+<p>All objects have hash codes. Hash codes are guaranteed to be the
+same for objects that are equal when compared using the equality
+operator <code>==</code>. Other than that there are no guarantees about
+the hash codes. They will not be consistent between runs and
+there are no distribution guarantees.</p>
+<p>If a subclass overrides <code>hashCode</code> it should override the
+equality operator as well to maintain consistency.</p>
+<pre class="source">
+external int hashCode();
+</pre>
+</div>
+</div>
 <div class="method"><h4 id="noSuchMethod">
-<span class="show-code">Code</span>
+<button class="show-code">Code</button>
 <strong>noSuchMethod</strong>(method, args) <a class="anchor-link" href="#noSuchMethod"
               title="Permalink to Proxy.noSuchMethod">#</a></h4>
 <div class="doc">
-
+<div class="inherited">
+<p><a class="crossref" href="../js/Proxy.html#noSuchMethod">noSuchMethod</a> is invoked when users invoke a non-existant method
+on an object. The name of the method and the arguments of the
+invocation are passed to <a class="crossref" href="../js/Proxy.html#noSuchMethod">noSuchMethod</a>. If <a class="crossref" href="../js/Proxy.html#noSuchMethod">noSuchMethod</a>
+returns a value, that value becomes the result of the original
+invocation.</p>
+<p>The default behavior of <a class="crossref" href="../js/Proxy.html#noSuchMethod">noSuchMethod</a> is to throw a
+<code>noSuchMethodError</code>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div></div>
 <pre class="source">
 noSuchMethod(method, args) {
   if (_depth == 0) throw 'Cannot access a JavaScript proxy out of scope.';
   var result = _port.callSync([_id, method, args.map(_serialize)]);
   switch (result[0]) {
     case 'return': return _deserialize(result[1]);
-    case 'exception': throw _deserialize(result[1]);
+    case 'throws': throw _deserialize(result[1]);
     case 'none': throw new NoSuchMethodError(this, method, args);
     default: throw 'Invalid return value';
   }
@@ -104,15 +180,27 @@ noSuchMethod(method, args) {
 </pre>
 </div>
 </div>
-<div class="method"><h4 id="operator []">
-<span class="show-code">Code</span>
-<strong>operator []</strong>(arg) <a class="anchor-link" href="#operator []"
-              title="Permalink to Proxy.operator []">#</a></h4>
-<div class="doc">
-
+<div class="method inherited"><h4 id="runtimeType">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Type.html">Type</a> <strong>get runtimeType</strong>() <a class="anchor-link" href="#runtimeType"
+              title="Permalink to Proxy.get runtimeType">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
+<p>A representation of the runtime type of the object.</p>
 <pre class="source">
-operator[](arg) =&gt; noSuchMethod('[]', [ arg ]);
+external Type get runtimeType;
 </pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="toString">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/String.html">String</a> <strong>toString</strong>() <a class="anchor-link" href="#toString"
+              title="Permalink to Proxy.toString">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
+<p>Returns a string representation of this object.</p>
+<pre class="source">
+external String toString();
+</pre>
+</div>
 </div>
 </div>
         </div>
@@ -120,7 +208,7 @@ operator[](arg) =&gt; noSuchMethod('[]', [ arg ]);
         </div>
         
         <div class="footer">
-          <div>This page was generated at 2012-09-24 08:38:11.807</div>
+          <div>This page was generated at 2012-10-10 15:11:11.281</div>
         </div>
         <script async src="../client-static.js"></script>
         </body></html>
