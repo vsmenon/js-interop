@@ -5,7 +5,7 @@
         <title>Callback class / js Library / Dart Documentation</title>
         <link rel="stylesheet" type="text/css"
             href="../styles.css">
-        <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
         <link rel="shortcut icon" href="../favicon.ico">
         
         </head>
@@ -26,7 +26,9 @@
         
 <h2><div class="icon-library"></div><a href="../js.html">js</a></h2><ul class="icon">
 <li><div class="icon-class"></div><strong>Callback</strong></li>
+<li><a href="../js/FunctionProxy.html"><div class="icon-class"></div>FunctionProxy</a></li>
 <li><a href="../js/Proxy.html"><div class="icon-class"></div>Proxy</a></li>
+<li><a href="../js/Serializable.html"><div class="icon-class"></div>Serializable&lt;T&gt;</a></li>
 </ul>
 </div>
 <div class="content">
@@ -41,53 +43,99 @@ JavaScript.</p>
 <p>A callback can either be:</p><ul><li>
 <p>single-fire, in which case it is automatically invalidated after the first
   invocation, or</p></li><li>multi-fire, in which case it must be explicitly disposed.</li></ul>
+<pre class="source">
+class Callback implements Serializable&lt;FunctionProxy&gt; {
+ var _manualDispose;
+ var _id;
+ var _callback;
+
+ _initialize(manualDispose) {
+   _manualDispose = manualDispose;
+   _id = _proxiedObjectTable.add(_callback);
+   _proxiedObjectTable.globalize(_id);
+ }
+
+ _dispose() {
+   var c = _proxiedObjectTable.invalidate(_id);
+ }
+
+ FunctionProxy toJs() =&gt;
+     new FunctionProxy._internal(_proxiedObjectTable.sendPort, _id);
+
+ /**
+  * Disposes this [Callback] so that it may be collected.
+  * Once a [Callback] is disposed, it is an error to invoke it from JavaScript.
+  */
+ dispose() {
+   assert(_manualDispose);
+   _dispose();
+ }
+
+ /**
+  * Creates a single-fire [Callback] that invokes [f].  The callback is
+  * automatically disposed after the first invocation.
+  */
+ Callback.once(Function f, {bool withThis: false}) {
+   _callback = (List args) {
+     try {
+       return Function.apply(f, withThis ? args : args.skip(1).toList());
+     } finally {
+       _dispose();
+     }
+   };
+   _initialize(false);
+ }
+
+ /**
+  * Creates a multi-fire [Callback] that invokes [f].  The callback must be
+  * explicitly disposed to avoid memory leaks.
+  */
+ Callback.many(Function f, {bool withThis: false}) {
+   _callback = (List args) =&gt; Function.apply(f, withThis ? args : args.skip(1).toList());
+   _initialize(true);
+ }
+}
+</pre>
 </div>
+<h3>Implements</h3>
+<p>
+<span class="type-box"><span class="icon-class"></span><a href="../js/Serializable.html">Serializable&lt;FunctionProxy&gt;</a></span></p>
 <div>
 <h3>Constructors</h3>
 <div class="method"><h4 id="Callback.many">
 <button class="show-code">Code</button>
-new <strong>Callback.many</strong>(<a href="http://api.dartlang.org/dart_core/Function.html">Function</a> f) <a class="anchor-link" href="#Callback.many"
+new <strong>Callback.many</strong>(Function f, {bool withThis: false}) <a class="anchor-link" href="#Callback.many"
               title="Permalink to Callback.Callback.many">#</a></h4>
 <div class="doc">
 <p>Creates a multi-fire <a class="crossref" href="../js/Callback.html">Callback</a> that invokes 
 <span class="param">f</span>.  The callback must be
 explicitly disposed to avoid memory leaks.</p>
 <pre class="source">
-Callback.many(Function f) {
-  _callback = f;
-  _initialize(true);
+Callback.many(Function f, {bool withThis: false}) {
+ _callback = (List args) =&gt; Function.apply(f, withThis ? args : args.skip(1).toList());
+ _initialize(true);
 }
 </pre>
 </div>
 </div>
 <div class="method"><h4 id="Callback.once">
 <button class="show-code">Code</button>
-new <strong>Callback.once</strong>(<a href="http://api.dartlang.org/dart_core/Function.html">Function</a> f) <a class="anchor-link" href="#Callback.once"
+new <strong>Callback.once</strong>(Function f, {bool withThis: false}) <a class="anchor-link" href="#Callback.once"
               title="Permalink to Callback.Callback.once">#</a></h4>
 <div class="doc">
 <p>Creates a single-fire <a class="crossref" href="../js/Callback.html">Callback</a> that invokes 
 <span class="param">f</span>.  The callback is
 automatically disposed after the first invocation.</p>
 <pre class="source">
-Callback.once(Function f) {
-  _callback = ([arg1, arg2, arg3, arg4]) {
-    try {
-      if (!?arg1) {
-        return f();
-      } else if (!?arg2) {
-        return f(arg1);
-      } else if (!?arg3) {
-        return f(arg1, arg2);
-      } else if (!?arg4) {
-        return f(arg1, arg2, arg3);
-      } else {
-        return f(arg1, arg2, arg3, arg4);
-      }
-    } finally {
-      _dispose();
-    }
-  };
-  _initialize(false);
+Callback.once(Function f, {bool withThis: false}) {
+ _callback = (List args) {
+   try {
+     return Function.apply(f, withThis ? args : args.skip(1).toList());
+   } finally {
+     _dispose();
+   }
+ };
+ _initialize(false);
 }
 </pre>
 </div>
@@ -95,91 +143,29 @@ Callback.once(Function f) {
 </div>
 <div>
 <h3>Methods</h3>
-<div class="method inherited"><h4 id="==">
-<button class="show-code">Code</button>
-<a href="http://api.dartlang.org/dart_core/bool.html">bool</a> <strong>operator ==</strong>(other) <a class="anchor-link" href="#=="
-              title="Permalink to Callback.operator ==">#</a></h4>
-<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
-<p>The equality operator.</p>
-<p>The default behavior for all <code>Object</code>s is to return true if and
-only if <code>this</code> and 
-<span class="param">other</span> are the same object.</p>
-<p>If a subclass overrides the equality operator it should override
-the <code>hashCode</code> method as well to maintain consistency.</p>
-<pre class="source">
-bool operator ==(other) =&gt; identical(this, other);
-</pre>
-</div>
-</div>
 <div class="method"><h4 id="dispose">
 <button class="show-code">Code</button>
-<strong>dispose</strong>() <a class="anchor-link" href="#dispose"
+dynamic<strong>dispose</strong>() <a class="anchor-link" href="#dispose"
               title="Permalink to Callback.dispose">#</a></h4>
 <div class="doc">
 <p>Disposes this <a class="crossref" href="../js/Callback.html">Callback</a> so that it may be collected.
 Once a <a class="crossref" href="../js/Callback.html">Callback</a> is disposed, it is an error to invoke it from JavaScript.</p>
 <pre class="source">
 dispose() {
-  assert(_manualDispose);
-  _dispose();
+ assert(_manualDispose);
+ _dispose();
 }
 </pre>
 </div>
 </div>
-<div class="method inherited"><h4 id="hashCode">
+<div class="method"><h4 id="toJs">
 <button class="show-code">Code</button>
-<a href="http://api.dartlang.org/dart_core/int.html">int</a> <strong>hashCode</strong>() <a class="anchor-link" href="#hashCode"
-              title="Permalink to Callback.hashCode">#</a></h4>
-<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
-<p>Get a hash code for this object.</p>
-<p>All objects have hash codes. Hash codes are guaranteed to be the
-same for objects that are equal when compared using the equality
-operator <code>==</code>. Other than that there are no guarantees about
-the hash codes. They will not be consistent between runs and
-there are no distribution guarantees.</p>
-<p>If a subclass overrides <code>hashCode</code> it should override the
-equality operator as well to maintain consistency.</p>
+<a href="../js/FunctionProxy.html">FunctionProxy</a> <strong>toJs</strong>() <a class="anchor-link" href="#toJs"
+              title="Permalink to Callback.toJs">#</a></h4>
+<div class="doc">
 <pre class="source">
-external int hashCode();
-</pre>
-</div>
-</div>
-<div class="method inherited"><h4 id="noSuchMethod">
-<button class="show-code">Code</button>
-<strong>noSuchMethod</strong>(<a href="http://api.dartlang.org/dart_core/String.html">String</a> name, <a href="http://api.dartlang.org/dart_core/List.html">List</a> args) <a class="anchor-link" href="#noSuchMethod"
-              title="Permalink to Callback.noSuchMethod">#</a></h4>
-<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
-<p><code>noSuchMethod</code> is invoked when users invoke a non-existant method
-on an object. The name of the method and the arguments of the
-invocation are passed to <code>noSuchMethod</code>. If <code>noSuchMethod</code>
-returns a value, that value becomes the result of the original
-invocation.</p>
-<p>The default behavior of <code>noSuchMethod</code> is to throw a
-<code>noSuchMethodError</code>.</p>
-<pre class="source">
-external Dynamic noSuchMethod(String name, List args);
-</pre>
-</div>
-</div>
-<div class="method inherited"><h4 id="runtimeType">
-<button class="show-code">Code</button>
-<a href="http://api.dartlang.org/dart_core/Type.html">Type</a> <strong>get runtimeType</strong>() <a class="anchor-link" href="#runtimeType"
-              title="Permalink to Callback.get runtimeType">#</a></h4>
-<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
-<p>A representation of the runtime type of the object.</p>
-<pre class="source">
-external Type get runtimeType;
-</pre>
-</div>
-</div>
-<div class="method inherited"><h4 id="toString">
-<button class="show-code">Code</button>
-<a href="http://api.dartlang.org/dart_core/String.html">String</a> <strong>toString</strong>() <a class="anchor-link" href="#toString"
-              title="Permalink to Callback.toString">#</a></h4>
-<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_core/Object.html">Object</a> </div><div class="doc">
-<p>Returns a string representation of this object.</p>
-<pre class="source">
-external String toString();
+FunctionProxy toJs() =&gt;
+   new FunctionProxy._internal(_proxiedObjectTable.sendPort, _id);
 </pre>
 </div>
 </div>
@@ -187,9 +173,8 @@ external String toString();
         </div>
         <div class="clear"></div>
         </div>
-        
         <div class="footer">
-          <div>This page was generated at 2012-10-10 15:11:11.263</div>
+          <div>This page was generated at 2013-04-12 17:10:36.672</div>
         </div>
         <script async src="../client-static.js"></script>
         </body></html>
