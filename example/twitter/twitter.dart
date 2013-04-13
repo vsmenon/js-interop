@@ -4,22 +4,19 @@
 
 // A JS interop sample showing JSONP access to Twitter from Dart.
 
-#import('dart:html');
-#import('dart:json');
-// TODO(vsm): Make this a package path.
-#import('../../lib/js.dart', prefix: 'js');
+import 'dart:html';
+import 'dart:json';
+import 'package:js/js.dart' as js;
 
 void main() {
-  js.scoped(() {
-    // Create a JavaScript function called display that forwards to the Dart
-    // function.
-    js.context.display = new js.Callback.once(display);
+  // Create a JavaScript function called display that forwards to the Dart
+  // function.
+  js.context.display = new js.Callback.once(display);
 
-    // Inject a JSONP request to Twitter invoking the JavaScript display
-    // function.
-    document.body.nodes.add(new ScriptElement()..src =
-        "https://search.twitter.com/search.json?q=dartlang&rpp=20&callback=display");
-  });
+  // Inject a JSONP request to Twitter invoking the JavaScript display
+  // function.
+  document.body.nodes.add(new ScriptElement()..src =
+    "https://search.twitter.com/search.json?q=dartlang&rpp=20&callback=display");
 }
 
 // Convert URLs in the text to links.
@@ -27,11 +24,11 @@ String linkify(String text) {
   List words = text.split(' ');
   var buffer = new StringBuffer();
   for (var word in words) {
-    if (!buffer.isEmpty()) buffer.add(' ');
+    if (!buffer.isEmpty) buffer.write(' ');
     if (word.startsWith('http://') || word.startsWith('https://')) {
-      buffer.add('<a href="$word">$word</a>');
+      buffer.write('<a href="$word">$word</a>');
     } else {
-      buffer.add(word);
+      buffer.write(word);
     }
   }
   return buffer.toString();
@@ -49,7 +46,7 @@ void display(var data) {
     var time = result.created_at;
     var text = linkify(result.text);
     var div = new DivElement();
-    div.innerHTML = '<div>From: $user</div><div>$text</div><p>';
+    div.innerHtml = '<div>From: $user</div><div>$text</div><p>';
     document.body.nodes.add(div);
   }
 }

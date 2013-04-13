@@ -6,9 +6,8 @@
 // the Bubble Chart example here:
 // https://developers.google.com/chart/interactive/docs/gallery/bubblechart
 
-#import('dart:html');
-// TODO(vsm): Make this a package path.
-#import('../../lib/js.dart', prefix: 'js');
+import 'dart:html';
+import 'package:js/js.dart' as js;
 
 main() {
   drawVisualization(_) {
@@ -43,8 +42,6 @@ main() {
     chart.draw(data, options);
   }
 
-  js.scoped(() {
-    js.context.google.setOnLoadCallback(
-        new js.Callback.once(drawVisualization));
-  });
+  js.context.google.setOnLoadCallback(
+      new js.Callback.once(drawVisualization));
 }

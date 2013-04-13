@@ -1,4 +1,4 @@
-// Copyright (c) 2012, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -15,29 +15,26 @@
  * The top-level [context] getter provides a [Proxy] to the global JavaScript
  * context for the page your Dart code is running on.  In the following example:
  *
- *     #import('package:js/js.dart', prefix: 'js');
+ *     import 'package:js/js.dart' as js;
  *
  *     void main() {
- *       js.scoped(() {
- *         js.context.alert('Hello from Dart via JavaScript');
- *       });
+ *       js.context.alert('Hello from Dart via JavaScript');
  *     }
  *
  * js.context.alert creates a proxy to the top-level alert function in
  * JavaScript.  It is invoked from Dart as a regular function that forwards to
- * the underlying JavaScript one.  The proxies allocated within the scope are
- * released once the scope is exited.
+ * the underlying JavaScript one.  By default, proxies are released when
+ * the currently executing event completes, e.g., when main is completes
+ * in this example.
  *
  * The library also enables JavaScript proxies to Dart objects and functions.
  * For example, the following Dart code:
  *
- *     scoped(() {
- *       js.context.dartCallback = new Callback.once((x) => print(x*2));
- *     });
+ *     js.context.dartCallback = new Callback.once((x) => print(x*2));
  *
  * defines a top-level JavaScript function 'dartCallback' that is a proxy to
  * the corresponding Dart function.  The [Callback.once] constructor allows the
- * proxy to the Dart function to be retained beyond the end of the scope;
+ * proxy to the Dart function to be retained across multiple events;
  * instead it is released after the first invocation.  (This is a common
  * pattern for asychronous callbacks.)
  *
@@ -66,27 +63,65 @@
  * will construct a JavaScript Foo object with the parameter 42, invoke its
  * add method, and return a [Proxy] to a new Foo object whose x field is 84.
  *
- * See [samples](http://dart-lang.github.com/js-interop/example) for more examples
- * of usage.
+ * See [samples](http://dart-lang.github.com/js-interop/example) for more
+ * examples of usage.
+ *
+ * See this [article](http://www.dartlang.org/articles/js-dart-interop) for
+ * more detailed discussion.
  */
 
-// TODO(vsm): Add a link to an article.
+library js;
 
-#library('js');
-
-#import('dart:html');
-#import('dart:isolate');
+import 'dart:async';
+import 'dart:html';
+import 'dart:isolate';
 
 // JavaScript bootstrapping code.
+// TODO(vsm): Migrate this to use a builtin resource mechanism once we have
+// one.
+
+// NOTE: Please re-run tools/create_bootstrap.dart on any modification of
+// this bootstrap string.
 final _JS_BOOTSTRAP = r"""
 (function() {
-  // Proxy support
+  // Proxy support for js.dart.
+
+  var globalContext = window;
+
+  // Support for binding the receiver (this) in proxied functions.
+  function bindIfFunction(f, _this) {
+    if (typeof(f) != "function") {
+      return f;
+    } else {
+      return new BoundFunction(_this, f);
+    }
+  }
+
+  function unbind(obj) {
+    if (obj instanceof BoundFunction) {
+      return obj.object;
+    } else {
+      return obj;
+    }
+  }
+
+  function getBoundThis(obj) {
+    if (obj instanceof BoundFunction) {
+      return obj._this;
+    } else {
+      return globalContext;
+    }
+  }
+
+  function BoundFunction(_this, object) {
+    this._this = _this;
+    this.object = object;
+  }
 
   // Table for local objects and functions that are proxied.
-  // TODO(vsm): Merge into one.
-  function ProxiedReferenceTable(name) {
+  function ProxiedObjectTable() {
     // Name for debugging.
-    this.name = name;
+    this.name = 'js-ref';
 
     // Table from IDs to JS objects.
     this.map = {};
@@ -120,17 +155,17 @@ final _JS_BOOTSTRAP = r"""
 
   // Number of valid IDs.  This is the number of objects (global and local)
   // kept alive by this table.
-  ProxiedReferenceTable.prototype.count = function () {
+  ProxiedObjectTable.prototype.count = function () {
     return Object.keys(this.map).length;
   }
 
   // Number of total IDs ever allocated.
-  ProxiedReferenceTable.prototype.total = function () {
+  ProxiedObjectTable.prototype.total = function () {
     return this.count() + this._deletedCount;
   }
 
   // Adds an object to the table and return an ID for serialization.
-  ProxiedReferenceTable.prototype.add = function (obj) {
+  ProxiedObjectTable.prototype.add = function (obj) {
     if (this.scopeIndices.length == 0) {
       throw "Cannot allocate a proxy outside of a scope.";
     }
@@ -141,25 +176,22 @@ final _JS_BOOTSTRAP = r"""
     return ref;
   }
 
-  ProxiedReferenceTable.prototype._initializeOnce = function () {
+  ProxiedObjectTable.prototype._initializeOnce = function () {
     if (!this._initialized) {
       this._initialize();
+      this._initialized = true;
     }
-    this._initialized = true;
   }
 
-  // Overridable initialization on first use hook.
-  ProxiedReferenceTable.prototype._initialize = function () {}
-
   // Enters a new scope for this table.
-  ProxiedReferenceTable.prototype.enterScope = function() {
+  ProxiedObjectTable.prototype.enterScope = function() {
     this._initializeOnce();
     this.scopeIndices.push(this.handleStack.length);
   }
-  
+
   // Invalidates all non-global IDs in the current scope and
   // exit the current scope.
-  ProxiedReferenceTable.prototype.exitScope = function() {
+  ProxiedObjectTable.prototype.exitScope = function() {
     var start = this.scopeIndices.pop();
     for (var i = start; i < this.handleStack.length; ++i) {
       var key = this.handleStack[i];
@@ -170,14 +202,14 @@ final _JS_BOOTSTRAP = r"""
     }
     this.handleStack = this.handleStack.splice(0, start);
   }
-  
+
   // Makes this ID globally scope.  It must be explicitly invalidated.
-  ProxiedReferenceTable.prototype.globalize = function(id) {
+  ProxiedObjectTable.prototype.globalize = function(id) {
     this.globalIds[id] = true;
   }
 
   // Invalidates this ID, potentially freeing its corresponding object.
-  ProxiedReferenceTable.prototype.invalidate = function(id) {
+  ProxiedObjectTable.prototype.invalidate = function(id) {
     var old = this.get(id);
     delete this.globalIds[id];
     delete this.map[id];
@@ -186,40 +218,12 @@ final _JS_BOOTSTRAP = r"""
   }
 
   // Gets the object or function corresponding to this ID.
-  ProxiedReferenceTable.prototype.get = function (id) {
+  ProxiedObjectTable.prototype.get = function (id) {
     if (!this.map.hasOwnProperty(id)) {
       throw 'Proxy ' + id + ' has been invalidated.'
     }
     return this.map[id];
   }
-
-  // Subtype for managing function proxies.
-  function ProxiedFunctionTable() {}
-
-  ProxiedFunctionTable.prototype = new ProxiedReferenceTable('func-ref');
-
-  ProxiedFunctionTable.prototype._initialize = function () {
-    // Configure this table's port to invoke the corresponding function given
-    // its ID.
-    // TODO(vsm): Should we enter / exit a scope?
-    var table = this;
-
-    this.port.receive(function (message) {
-      var id = message[0];
-      var args = message[1].map(deserialize);
-      var f = table.get(id);
-      // TODO(vsm): Should we capture _this_ automatically?
-      return serialize(f.apply(null, args));
-    });
-  }
-
-  // The singleton table for proxied local functions.
-  var proxiedFunctionTable = new ProxiedFunctionTable();
-
-  // Subtype for proxied local objects.
-  function ProxiedObjectTable() {}
-
-  ProxiedObjectTable.prototype = new ProxiedReferenceTable('js-ref');
 
   ProxiedObjectTable.prototype._initialize = function () {
     // Configure this table's port to forward methods, getters, and setters
@@ -228,36 +232,48 @@ final _JS_BOOTSTRAP = r"""
 
     this.port.receive(function (message) {
       // TODO(vsm): Support a mechanism to register a handler here.
-      var receiver = table.get(message[0]);
-      var method = message[1];
-      var args = message[2].map(deserialize);
-      if (method.indexOf("get:") == 0) {
-        // Getter.
-        var field = method.substring(4);
-        if (field in receiver && args.length == 0) {
-          return [ 'return', serialize(receiver[field]) ];
-        }
-      } else if (method.indexOf("set:") == 0) {
-        // Setter.
-        var field = method.substring(4);
-        if (args.length == 1) {
-          return [ 'return', serialize(receiver[field] = args[0]) ];
-        }
-      } else if (method == '[]' && args.length == 1) {
-        // Index getter.
-        return [ 'return', serialize(receiver[args[0]]) ];
-      } else {
-        var f = receiver[method];
-        if (f) {
-          try {
+      try {
+        var object = table.get(message[0]);
+        var receiver = unbind(object);
+        var member = message[1];
+        var kind = message[2];
+        var args = message[3].map(deserialize);
+        if (kind == 'get') {
+          // Getter.
+          var field = member;
+          if (field in receiver && args.length == 0) {
+            var result = bindIfFunction(receiver[field], receiver);
+            return [ 'return', serialize(result) ];
+          }
+        } else if (kind == 'set') {
+          // Setter.
+          var field = member;
+          if (args.length == 1) {
+            return [ 'return', serialize(receiver[field] = args[0]) ];
+          }
+        } else if (kind == 'apply') {
+          // Direct function invocation.
+          var _this = getBoundThis(object);
+          return [ 'return', serialize(receiver.apply(_this, args)) ];
+        } else if (member == '[]' && args.length == 1) {
+          // Index getter.
+          var result = bindIfFunction(receiver[args[0]], receiver);
+          return [ 'return', serialize(result) ];
+        } else if (member == '[]=' && args.length == 2) {
+          // Index setter.
+          return [ 'return', serialize(receiver[args[0]] = args[1]) ];
+        } else {
+          // Member function invocation.
+          var f = receiver[member];
+          if (f) {
             var result = f.apply(receiver, args);
             return [ 'return', serialize(result) ];
-          } catch (e) {
-            return [ 'exception', serialize(e) ];
           }
         }
+        return [ 'none' ];
+      } catch (e) {
+        return [ 'throws', e.toString() ];
       }
-      return [ 'none' ];
     });
   }
 
@@ -367,8 +383,15 @@ final _JS_BOOTSTRAP = r"""
     } else if (message instanceof SendPortSync) {
       // Non-proxied objects are serialized.
       return message;
-    } else if (message instanceof Element) {
+    } else if (message instanceof Element &&
+        (message.ownerDocument == null || message.ownerDocument == document)) {
       return [ 'domref', serializeElement(message) ];
+    } else if (message instanceof BoundFunction &&
+               typeof(message.object) == 'function') {
+      // Local function proxy.
+      return [ 'funcref',
+               proxiedObjectTable.add(message),
+               proxiedObjectTable.sendPort ];
     } else if (typeof(message) == 'function') {
       if ('_dart_id' in message) {
         // Remote function proxy.
@@ -378,8 +401,8 @@ final _JS_BOOTSTRAP = r"""
       } else {
         // Local function proxy.
         return [ 'funcref',
-                 proxiedFunctionTable.add(message),
-                 proxiedFunctionTable.sendPort ];
+                 proxiedObjectTable.add(message),
+                 proxiedObjectTable.sendPort ];
       }
     } else if (message instanceof DartProxy) {
       // Remote object proxy.
@@ -420,17 +443,20 @@ final _JS_BOOTSTRAP = r"""
     // TODO(vsm): Add a more robust check for a local SendPortSync.
     if ("receivePort" in port) {
       // Local function.
-      return proxiedFunctionTable.get(id);
+      return proxiedObjectTable.get(id);
     } else {
       // Remote function.  Forward to its port.
       var f = function () {
-        enterScope();
+        var depth = enterScope();
         try {
-          var args = Array.prototype.slice.apply(arguments).map(serialize);
-          var result = port.callSync([id, args]);
-          return deserialize(result);
+          var args = Array.prototype.slice.apply(arguments);
+          args.splice(0, 0, this);
+          args = args.map(serialize);
+          var result = port.callSync([id, '#call', args]);
+          if (result[0] == 'throws') throw deserialize(result[1]);
+          return deserialize(result[1]);
         } finally {
-          exitScope();
+          exitScope(depth);
         }
       };
       // Cache the remote id and port.
@@ -458,34 +484,108 @@ final _JS_BOOTSTRAP = r"""
   // serialized constructor and arguments.
   function construct(args) {
     args = args.map(deserialize);
-    var constructor = args[0];
+    var constructor = unbind(args[0]);
     args = Array.prototype.slice.call(args, 1);
 
-    // Dummy Type with correct constructor.
-    var Type = function(){};
-    Type.prototype = constructor.prototype;
-
-    // Create a new instance
-    var instance = new Type();
-
-    // Call the original constructor.
-    var ret = constructor.apply(instance, args);
-
-    return serialize(Object(ret) === ret ? ret : instance);
+    // Until 10 args, the 'new' operator is used. With more arguments we use a
+    // generic way that may not work, particulary when the constructor does not
+    // have an "apply" method.
+    var ret = null;
+    if (args.length === 0) {
+      ret = new constructor();
+    } else if (args.length === 1) {
+      ret = new constructor(args[0]);
+    } else if (args.length === 2) {
+      ret = new constructor(args[0], args[1]);
+    } else if (args.length === 3) {
+      ret = new constructor(args[0], args[1], args[2]);
+    } else if (args.length === 4) {
+      ret = new constructor(args[0], args[1], args[2], args[3]);
+    } else if (args.length === 5) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4]);
+    } else if (args.length === 6) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4],
+                            args[5]);
+    } else if (args.length === 7) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4],
+                            args[5], args[6]);
+    } else if (args.length === 8) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4],
+                            args[5], args[6]);
+    } else if (args.length === 9) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4],
+                            args[5], args[6]);
+    } else if (args.length === 10) {
+      ret = new constructor(args[0], args[1], args[2], args[3], args[4],
+                            args[5], args[6], args[7], args[8], args[9]);
+    } else {
+      // Dummy Type with correct constructor.
+      var Type = function(){};
+      Type.prototype = constructor.prototype;
+  
+      // Create a new instance
+      var instance = new Type();
+  
+      // Call the original constructor.
+      ret = constructor.apply(instance, args);
+      ret = Object(ret) === ret ? ret : instance;
+    }
+    return serialize(ret);
   }
 
-  // Remote handler to evaluate a string in JavaScript and return a serialized
-  // result. 
-  function evaluate(data) {
-    return serialize(eval(deserialize(data))); 
+  // Remote handler to return the top-level JavaScript context.
+  function context(data) {
+    return serialize(globalContext);
   }
 
-  // Remote handler for debugging.
-  function debug() {
-    var live = proxiedObjectTable.count() + proxiedFunctionTable.count();
-    var total = proxiedObjectTable.total() + proxiedFunctionTable.total();
-    return 'JS objects Live : ' + live +
-           ' (out of ' + total + ' ever allocated).';
+  // Remote handler to track number of live / allocated proxies.
+  function proxyCount() {
+    var live = proxiedObjectTable.count();
+    var total = proxiedObjectTable.total();
+    return [live, total];
+  }
+
+  // Return true if two JavaScript proxies are equal (==).
+  function proxyEquals(args) {
+    return deserialize(args[0]) == deserialize(args[1]);
+  }
+
+  // Return true if a JavaScript proxy is instance of a given type (instanceof).
+  function proxyInstanceof(args) {
+    var obj = unbind(deserialize(args[0]));
+    var type = unbind(deserialize(args[1]));
+    return obj instanceof type;
+  }
+
+  // Return true if a JavaScript proxy is instance of a given type (instanceof).
+  function proxyDeleteProperty(args) {
+    var obj = unbind(deserialize(args[0]));
+    var member = unbind(deserialize(args[1]));
+    delete obj[member];
+  }
+
+  function proxyConvert(args) {
+    return serialize(deserializeDataTree(args));
+  }
+
+  function deserializeDataTree(data) {
+    var type = data[0];
+    var value = data[1];
+    if (type === 'map') {
+      var obj = {};
+      for (var i = 0; i < value.length; i++) {
+        obj[value[i][0]] = deserializeDataTree(value[i][1]);
+      }
+      return obj;
+    } else if (type === 'list') {
+      var list = [];
+      for (var i = 0; i < value.length; i++) {
+        list.push(deserializeDataTree(value[i]));
+      }
+      return list;
+    } else /* 'simple' */ {
+      return deserialize(value);
+    }
   }
 
   function makeGlobalPort(name, f) {
@@ -495,23 +595,45 @@ final _JS_BOOTSTRAP = r"""
   }
 
   // Enters a new scope in the JavaScript context.
-  function enterScope() {
+  function enterJavaScriptScope() {
     proxiedObjectTable.enterScope();
-    proxiedFunctionTable.enterScope();
+  }
+
+  // Enters a new scope in both the JavaScript and Dart context.
+  var _dartEnterScopePort = null;
+  function enterScope() {
+    enterJavaScriptScope();
+    if (!_dartEnterScopePort) {
+      _dartEnterScopePort = window.lookupPort('js-dart-enter-scope');
+    }
+    return _dartEnterScopePort.callSync([]);
   }
 
   // Exits the current scope (and invalidate local IDs) in the JavaScript
   // context.
-  function exitScope() {
-    proxiedFunctionTable.exitScope();
+  function exitJavaScriptScope() {
     proxiedObjectTable.exitScope();
   }
 
-  makeGlobalPort('dart-js-evaluate', evaluate);
+  // Exits the current scope in both the JavaScript and Dart context.
+  var _dartExitScopePort = null;
+  function exitScope(depth) {
+    exitJavaScriptScope();
+    if (!_dartExitScopePort) {
+      _dartExitScopePort = window.lookupPort('js-dart-exit-scope');
+    }
+    return _dartExitScopePort.callSync([ depth ]);
+  }
+
+  makeGlobalPort('dart-js-context', context);
   makeGlobalPort('dart-js-create', construct);
-  makeGlobalPort('dart-js-debug', debug);
-  makeGlobalPort('dart-js-enter-scope', enterScope);
-  makeGlobalPort('dart-js-exit-scope', exitScope);
+  makeGlobalPort('dart-js-proxy-count', proxyCount);
+  makeGlobalPort('dart-js-equals', proxyEquals);
+  makeGlobalPort('dart-js-instanceof', proxyInstanceof);
+  makeGlobalPort('dart-js-delete-property', proxyDeleteProperty);
+  makeGlobalPort('dart-js-convert', proxyConvert);
+  makeGlobalPort('dart-js-enter-scope', enterJavaScriptScope);
+  makeGlobalPort('dart-js-exit-scope', exitJavaScriptScope);
   makeGlobalPort('dart-js-globalize', function(data) {
     if (data[0] == "objref") return proxiedObjectTable.globalize(data[1]);
     // TODO(vsm): Do we ever need to globalize functions?
@@ -530,50 +652,82 @@ final _JS_BOOTSTRAP = r"""
 void _inject(code) {
   final script = new ScriptElement();
   script.type = 'text/javascript';
-  script.innerHTML = code;
+  script.innerHtml = code;
   document.body.nodes.add(script);
 }
 
-// Global ports to manage communication between Dart and JS.
+// Global ports to manage communication from Dart to JS.
 SendPortSync _jsPortSync = null;
 SendPortSync _jsPortCreate = null;
-SendPortSync _jsPortDebug = null;
-SendPortSync _jsEnterScope = null;
-SendPortSync _jsExitScope = null;
+SendPortSync _jsPortProxyCount = null;
+SendPortSync _jsPortEquals = null;
+SendPortSync _jsPortInstanceof = null;
+SendPortSync _jsPortDeleteProperty = null;
+SendPortSync _jsPortConvert = null;
+SendPortSync _jsEnterJavaScriptScope = null;
+SendPortSync _jsExitJavaScriptScope = null;
 SendPortSync _jsGlobalize = null;
 SendPortSync _jsInvalidate = null;
+
+// Global ports to manage communication from JS to Dart.
+ReceivePortSync _dartEnterDartScope = null;
+ReceivePortSync _dartExitDartScope = null;
 
 // Initializes bootstrap code and ports.
 void _initialize() {
   if (_jsPortSync != null) return;
-  _inject(_JS_BOOTSTRAP);
-  _jsPortSync = window.lookupPort('dart-js-evaluate');
+
+  // Test if the port is already defined.
+  try {
+    _jsPortSync = window.lookupPort('dart-js-context');
+  } catch (e) {
+    // TODO(vsm): Suppress the exception until dartbug.com/5854 is fixed.
+  }
+
+  // If not, try injecting the script.
+  if (_jsPortSync == null) {
+    _inject(_JS_BOOTSTRAP);
+    _jsPortSync = window.lookupPort('dart-js-context');
+  }
+
   _jsPortCreate = window.lookupPort('dart-js-create');
-  _jsPortDebug = window.lookupPort('dart-js-debug');
-  _jsEnterScope = window.lookupPort('dart-js-enter-scope');
-  _jsExitScope = window.lookupPort('dart-js-exit-scope');
+  _jsPortProxyCount = window.lookupPort('dart-js-proxy-count');
+  _jsPortEquals = window.lookupPort('dart-js-equals');
+  _jsPortInstanceof = window.lookupPort('dart-js-instanceof');
+  _jsPortDeleteProperty = window.lookupPort('dart-js-delete-property');
+  _jsPortConvert = window.lookupPort('dart-js-convert');
+  _jsEnterJavaScriptScope = window.lookupPort('dart-js-enter-scope');
+  _jsExitJavaScriptScope = window.lookupPort('dart-js-exit-scope');
   _jsGlobalize = window.lookupPort('dart-js-globalize');
   _jsInvalidate = window.lookupPort('dart-js-invalidate');
 
-  // Set up JS debugging.
-  scoped(() {
-    context.dartProxyDebug = new Callback.many(proxyDebug);
-  });
+  _dartEnterDartScope = new ReceivePortSync()
+    ..receive((_) => _enterScope());
+  _dartExitDartScope = new ReceivePortSync()
+    ..receive((args) => _exitScope(args[0]));
+  window.registerPort('js-dart-enter-scope', _dartEnterDartScope.toSendPort());
+  window.registerPort('js-dart-exit-scope', _dartExitDartScope.toSendPort());
 }
-
-// Evaluates a JavaScript string and return
-_js(String message) => _deserialize(_jsPortSync.callSync(_serialize(message)));
 
 /**
  * Returns a proxy to the global JavaScript context for this page.
  */
 Proxy get context {
-  if (_depth == 0) throw 'Cannot get JavaScript context out of scope.';
-  return _js('window');
+  _enterScopeIfNeeded();
+  return _deserialize(_jsPortSync.callSync([]));
 }
 
 // Depth of current scope.  Return 0 if no scope.
 get _depth => _proxiedObjectTable._scopeIndices.length;
+
+// If we are not already in a scope, enter one and register a
+// corresponding exit once we return to the event loop.
+void _enterScopeIfNeeded() {
+  if (_depth == 0) {
+    var depth = _enterScope();
+    runAsync(() => _exitScope(depth));
+  }
+}
 
 /**
  * Executes the closure [f] within a scope.  Any proxies created within this
@@ -588,41 +742,70 @@ scoped(f) {
   }
 }
 
-_enterScope() {
+int _enterScope() {
   _initialize();
   _proxiedObjectTable.enterScope();
-  _proxiedFunctionTable.enterScope();
-  assert(_proxiedObjectTable._scopeIndices.length ==
-         _proxiedFunctionTable._scopeIndices.length);
-  _jsEnterScope.callSync([]);
+  _jsEnterJavaScriptScope.callSync([]);
   return _proxiedObjectTable._scopeIndices.length;
 }
 
-_exitScope(depth) {
+void _exitScope(int depth) {
   assert(_proxiedObjectTable._scopeIndices.length == depth);
-  _jsExitScope.callSync([]);
-  _proxiedFunctionTable.exitScope();
+  _jsExitJavaScriptScope.callSync([]);
   _proxiedObjectTable.exitScope();
-  proxyDebug();
+}
+
+/*
+ * Enters a scope and returns the depth of the scope stack.
+ */
+/// WARNING: This API is experimental and may be removed.
+int $experimentalEnterScope() {
+  return _enterScope();
+}
+
+/*
+ * Exits a scope.  The [depth] must match that returned by the corresponding
+ * enter scope call.
+ */
+/// WARNING: This API is experimental and may be removed.
+void $experimentalExitScope(int depth) {
+  _exitScope(depth);
 }
 
 /**
- * Retains the given [proxy] beyond the current scope.
+ * Retains the given [object] beyond the current scope.
  * Instead, it will need to be explicitly released.
- * The given [proxy] is returned for convenience.
+ * The given [object] is returned for convenience.
  */
-Proxy retain(Proxy proxy) {
-  _jsGlobalize.callSync(_serialize(proxy));
-  return proxy;
+// TODO(aa) : change dynamic to Serializable<Proxy> if http://dartbug.com/9023
+// is fixed.
+// TODO(aa) : change to "<T extends Serializable<Proxy>> T retain(T object)"
+// once generic methods have landed.
+dynamic retain(Serializable<Proxy> object) {
+  _jsGlobalize.callSync(_serialize(object.toJs()));
+  return object;
 }
 
 /**
- * Releases a retained [proxy].
+ * Releases a retained [object].
  */
-void release(Proxy proxy) {
-  _jsInvalidate.callSync(_serialize(proxy));
+void release(Serializable<Proxy> object) {
+  _jsInvalidate.callSync(_serialize(object.toJs()));
 }
 
+/**
+ * Check if [proxy] is instance of [type].
+ */
+bool instanceof(Proxy proxy, type) {
+  return _jsPortInstanceof.callSync([proxy, type].map(_serialize).toList());
+}
+
+/**
+ * Delete the [name] property of [proxy].
+ */
+void deleteProperty(Proxy proxy, String name) {
+  _jsPortDeleteProperty.callSync([proxy, name].map(_serialize).toList());
+}
 
 /**
  * Converts a Dart map [data] to a JavaScript map and return a [Proxy] to it.
@@ -644,28 +827,23 @@ Proxy array(List list) => new Proxy._json(list);
  *   invocation, or
  * - multi-fire, in which case it must be explicitly disposed.
  */
-class Callback {
+class Callback implements Serializable<FunctionProxy> {
   var _manualDispose;
   var _id;
   var _callback;
 
-  get _serialized => [ 'funcref',
-                       _id,
-                       _proxiedFunctionTable.sendPort ];
-
-  _initialize(f, manualDispose) {
+  _initialize(manualDispose) {
     _manualDispose = manualDispose;
-    _id = _proxiedFunctionTable.add(f);
-    _proxiedFunctionTable.globalize(_id);
-
-    _proxiedFunctionTable._replace(_id, _callback);
-    _deserializedFunctionTable.add(_callback, _serialized);
+    _id = _proxiedObjectTable.add(_callback);
+    _proxiedObjectTable.globalize(_id);
   }
 
   _dispose() {
-    var c = _proxiedFunctionTable.invalidate(_id);
-    _deserializedFunctionTable.remove(c);
+    var c = _proxiedObjectTable.invalidate(_id);
   }
+
+  FunctionProxy toJs() =>
+      new FunctionProxy._internal(_proxiedObjectTable.sendPort, _id);
 
   /**
    * Disposes this [Callback] so that it may be collected.
@@ -680,55 +858,44 @@ class Callback {
    * Creates a single-fire [Callback] that invokes [f].  The callback is
    * automatically disposed after the first invocation.
    */
-  // TODO(vsm): Is there a better way to handle varargs?
-  Callback.once(Function f) {
-    _callback = ([arg1, arg2, arg3, arg4]) {
+  Callback.once(Function f, {bool withThis: false}) {
+    _callback = (List args) {
       try {
-        if (!?arg1) {
-          return scoped(() => f());
-        } else if (!?arg2) {
-          return scoped(() => f(arg1));
-        } else if (!?arg3) {
-          return scoped(() => f(arg1, arg2));
-        } else if (!?arg4) {
-          return scoped(() => f(arg1, arg2, arg3));
-        } else {
-          return scoped(() => f(arg1, arg2, arg3, arg4));
-        }
+        return Function.apply(f, withThis ? args : args.skip(1).toList());
       } finally {
         _dispose();
       }
     };
-    _initialize(f, false);
+    _initialize(false);
   }
 
   /**
    * Creates a multi-fire [Callback] that invokes [f].  The callback must be
    * explicitly disposed to avoid memory leaks.
    */
-  // TODO(vsm): Is there a better way to handle varargs?
-  Callback.many(Function f) {
-    _callback = ([arg1, arg2, arg3, arg4]) {
-      if (!?arg1) {
-        return scoped(() => f());
-      } else if (!?arg2) {
-        return scoped(() => f(arg1));
-      } else if (!?arg3) {
-        return scoped(() => f(arg1, arg2));
-      } else if (!?arg4) {
-        return scoped(() => f(arg1, arg2, arg3));
-      } else {
-        return scoped(() => f(arg1, arg2, arg3, arg4));
-      }
-    };
-    _initialize(f, false);
+  Callback.many(Function f, {bool withThis: false}) {
+    _callback = (List args) => Function.apply(f, withThis ? args : args.skip(1).toList());
+    _initialize(true);
   }
+}
+
+// Detect unspecified arguments.
+class _Undefined {
+  const _Undefined();
+}
+const _undefined = const _Undefined();
+List _pruneUndefined(arg1, arg2, arg3, arg4, arg5, arg6) {
+  // This assumes no argument
+  final args = [arg1, arg2, arg3, arg4, arg5, arg6];
+  final index = args.indexOf(_undefined);
+  if (index < 0) return args;
+  return args.sublist(0, index);
 }
 
 /**
  * Proxies to JavaScript objects.
  */
-class Proxy {
+class Proxy implements Serializable<Proxy> {
   SendPortSync _port;
   final _id;
 
@@ -737,17 +904,27 @@ class Proxy {
    * JavaScript [constructor].  The arguments should be either
    * primitive values, DOM elements, or Proxies.
    */
-  factory Proxy(constructor, [arg1, arg2, arg3, arg4]) =>
-      new Proxy.withArgList(constructor, [arg1, arg2, arg3, arg4]);
+  factory Proxy(Serializable<FunctionProxy> constructor,
+      [arg1 = _undefined,
+       arg2 = _undefined,
+       arg3 = _undefined,
+       arg4 = _undefined,
+       arg5 = _undefined,
+       arg6 = _undefined]) {
+      var arguments = _pruneUndefined(arg1, arg2, arg3, arg4, arg5, arg6);
+      return new Proxy.withArgList(constructor, arguments);
+  }
 
   /**
    * Constructs a [Proxy] to a new JavaScript object by invoking a (proxy to a)
    * JavaScript [constructor].  The [arguments] list should contain either
    * primitive values, DOM elements, or Proxies.
    */
-  factory Proxy.withArgList(constructor, List arguments) {
-    if (_depth == 0) throw 'Cannot create Proxy out of scope.';
-    final serialized = ([constructor]..addAll(arguments)).map(_serialize);
+  factory Proxy.withArgList(Serializable<FunctionProxy> constructor,
+      List arguments) {
+    _enterScopeIfNeeded();
+    final serialized = ([constructor]..addAll(arguments)).map(_serialize).
+        toList();
     final result = _jsPortCreate.callSync(serialized);
     return _deserialize(result);
   }
@@ -757,53 +934,132 @@ class Proxy {
    * Dart map or list.
    */
   factory Proxy._json(data) {
-    if (_depth == 0) throw 'Cannot create Proxy out of scope.';
+    _enterScopeIfNeeded();
     return _convert(data);
   }
 
   static _convert(data) {
-    // TODO(vsm): Can we make this more efficient?
+    return _deserialize(_jsPortConvert.callSync(_serializeDataTree(data)));
+  }
+
+  static _serializeDataTree(data) {
     if (data is Map) {
-      var result = _js('new Object()');
-      for (var key in data.getKeys()) {
-        var value = _convert(data[key]);
-        result.noSuchMethod('set:$key', [value]);
+      final entries = new List();
+      for (var key in data.keys) {
+        entries.add([key, _serializeDataTree(data[key])]);
       }
-      return result;
+      return ['map', entries];
     } else if (data is List) {
-      var result = _js('new Array()');
-      for (var i = 0; i < data.length; ++i) {
-        var value = _convert(data[i]);
-        result.noSuchMethod('set:$i', [value]);
-      }
-      return result;
+      return ['list', data.map((e) => _serializeDataTree(e)).toList()];
+    } else {
+      return ['simple', _serialize(data)];
     }
-    return data;
   }
 
   Proxy._internal(this._port, this._id);
 
-  // TODO(vsm): This is not required in Dartium, but
-  // it is in Dart2JS.
+  Proxy toJs() => this;
+
   // Resolve whether this is needed.
-  operator[](arg) => noSuchMethod('[]', [ arg ]);
+  operator[](arg) => _forward(this, '[]', 'method', [ arg ]);
+
+  // Resolve whether this is needed.
+  operator[]=(key, value) => _forward(this, '[]=', 'method', [ key, value ]);
+
+  // Test if this is equivalent to another Proxy.  This essentially
+  // maps to JavaScript's == operator.
+  // TODO(vsm): Can we avoid forwarding to JS?
+  operator==(other) => identical(this, other)
+      ? true
+      : (other is Proxy &&
+         _jsPortEquals.callSync([_serialize(this), _serialize(other)]));
 
   // Forward member accesses to the backing JavaScript object.
-  noSuchMethod(method, args) {
-    if (_depth == 0) throw 'Cannot access a JavaScript proxy out of scope.';
-    var result = _port.callSync([_id, method, args.map(_serialize)]);
+  noSuchMethod(InvocationMirror invocation) {
+    String member = invocation.memberName;
+    // If trying to access a JavaScript field/variable that starts with
+    // _ (underscore), Dart treats it a library private and member name
+    // it suffixed with '@internalLibraryIdentifier' which we have to
+    // strip before sending over to the JS side.
+    if (member.indexOf('@') != -1) {
+      member = member.substring(0, member.indexOf('@'));
+    }
+    String kind;
+    List args = invocation.positionalArguments;
+    if (args == null) args = [];
+    // TODO(vsm): Clean this up once InvocationMirrors settle down.  The 'get:'
+    // and 'set:' form is still used by Dartium and the trunk version of
+    // Dart2JS.
+    if (invocation.isGetter) {
+      kind = 'get';
+      if (member.startsWith('get:')) {
+        member = member.substring(4);
+      }
+    } else if (invocation.isSetter) {
+      kind = 'set';
+      if (member.endsWith('=')) {
+        member = member.substring(0, member.length - 1);
+      }
+      if (member.startsWith('set:')) {
+        member = member.substring(4);
+      }
+    } else if (member.startsWith('get:')) {
+      kind = 'get';
+      member = member.substring(4);
+    } else if (member.startsWith('set:')) {
+      kind = 'set';
+      member = member.substring(4);
+    } else if (member == 'call') {
+      // A 'call' (probably) means that this proxy was invoked directly
+      // as if it was a function.  Map this to JS function application.
+      kind = 'apply';
+    } else {
+      kind = 'method';
+    }
+    return _forward(this, member, kind, args);
+  }
+
+  // Forward member accesses to the backing JavaScript object.
+  static _forward(Proxy receiver, String member, String kind, List args) {
+    _enterScopeIfNeeded();
+    var result = receiver._port.callSync([receiver._id, member, kind,
+                                          args.map(_serialize).toList()]);
     switch (result[0]) {
       case 'return': return _deserialize(result[1]);
-      case 'exception': throw _deserialize(result[1]);
-      case 'none': throw new NoSuchMethodError(this, method, args);
+      case 'throws': throw _deserialize(result[1]);
+      case 'none': throw new NoSuchMethodError(receiver, member, args, {});
       default: throw 'Invalid return value';
     }
   }
 }
 
+// TODO(aa) make FunctionProxy implements Function once it is allowed
+/// A [Proxy] subtype to JavaScript functions.
+class FunctionProxy extends Proxy implements Serializable<FunctionProxy> /*,Function*/ {
+  FunctionProxy._internal(SendPortSync port, id) : super._internal(port, id);
+
+  // TODO(vsm): This allows calls with a limited number of arguments
+  // in the context of dartbug.com/9283.  Eliminate pending the resolution
+  // of this bug.  Note, if this Proxy is called with more arguments then
+  // allowed below, it will trigger the 'call' path in Proxy.noSuchMethod
+  // - and still work correctly in unminified mode.
+  call([arg1 = _undefined, arg2 = _undefined,
+        arg3 = _undefined, arg4 = _undefined,
+        arg5 = _undefined, arg6 = _undefined]) {
+    var arguments = _pruneUndefined(arg1, arg2, arg3, arg4, arg5, arg6);
+    return Proxy._forward(this, '', 'apply', arguments);
+  }
+}
+
+/// Marker class used to indicate it is serializable to js. If a class is a
+/// [Serializable] the "toJs" method will be called and the result will be used
+/// as value.
+abstract class Serializable<T> {
+  T toJs();
+}
+
 // A table to managed local Dart objects that are proxied in JavaScript.
-// TODO(vsm): Combined Object and Function subtypes.
-class _ProxiedReferenceTable<T> {
+class _ProxiedObjectTable {
   // Debugging name.
   final String _name;
 
@@ -814,7 +1070,7 @@ class _ProxiedReferenceTable<T> {
   int _deletedCount;
 
   // Table of IDs to Dart objects.
-  final Map<String, T> _registry;
+  final Map<String, Object> _registry;
 
   // Port to handle and forward requests to the underlying Dart objects.
   // A remote proxy is uniquely identified by an ID and SendPortSync.
@@ -832,7 +1088,7 @@ class _ProxiedReferenceTable<T> {
 
   // Enters a new scope.
   enterScope() {
-    _scopeIndices.addLast(_handleStack.length);
+    _scopeIndices.add(_handleStack.length);
   }
 
   // Invalidates non-global IDs created in the current scope and
@@ -862,33 +1118,52 @@ class _ProxiedReferenceTable<T> {
   }
 
   // Replaces the object referenced by an ID.
-  _replace(id, T x) {
+  _replace(id, x) {
     _registry[id] = x;
   }
 
-  _ProxiedReferenceTable(this._name) :
+  _ProxiedObjectTable() :
+      _name = 'dart-ref',
       _nextId = 0,
       _deletedCount = 0,
-      _registry = <T>{},
+      _registry = {},
       _port = new ReceivePortSync(),
       _handleStack = new List<String>(),
       _scopeIndices = new List<int>(),
-      _globalIds = new Set<String>();
+      _globalIds = new Set<String>() {
+        _port.receive((msg) {
+          try {
+            final receiver = _registry[msg[0]];
+            final method = msg[1];
+            final args = msg[2].map(_deserialize).toList();
+            if (method == '#call') {
+              var result = _serialize(receiver(args));
+              return ['return', result];
+            } else {
+              // TODO(vsm): Support a mechanism to register a handler here.
+              throw 'Invocation unsupported on non-function Dart proxies';
+            }
+          } catch (e) {
+            // TODO(vsm): callSync should just handle exceptions itself.
+            return ['throws', '$e'];
+          }
+        });
+      }
 
   // Adds a new object to the table and return a new ID for it.
-  String add(T x) {
+  String add(x) {
     if (_scopeIndices.length == 0) {
       throw "Must be inside scope to allocate.";
     }
     // TODO(vsm): Cache x and reuse id.
     final id = '$_name-${_nextId++}';
     _registry[id] = x;
-    _handleStack.addLast(id);
+    _handleStack.add(id);
     return id;
   }
 
   // Gets an object by ID.
-  T get(String id) {
+  Object get(String id) {
     return _registry[id];
   }
 
@@ -902,92 +1177,12 @@ class _ProxiedReferenceTable<T> {
   get sendPort => _port.toSendPort();
 }
 
-// A subtype for managing functions.
-// TODO(vsm): Once operator call is implemented, this can be folded
-// into the general table.
-class _ProxiedFunctionTable extends _ProxiedReferenceTable<Function> {
-  _ProxiedFunctionTable() : super('func-ref') {
-    // Dispatch remote requests to the corresponding function.
-    _port.receive((msg) {
-      final id = msg[0];
-      final args = msg[1].map(_deserialize);
-      final f = _registry[id];
-      switch (args.length) {
-        case 0: return _serialize(f());
-        case 1: return _serialize(f(args[0]));
-        case 2: return _serialize(f(args[0], args[1]));
-        case 3: return _serialize(f(args[0], args[1], args[2]));
-        case 4: return _serialize(f(args[0], args[1], args[2], args[3]));
-        default: throw 'Unsupported number of arguments.';
-      }
-    });
-  }
-}
-
-// The singleton to manage proxied Dart functions.
-_ProxiedFunctionTable __proxiedFunctionTable;
-_ProxiedFunctionTable get _proxiedFunctionTable {
-  if (__proxiedFunctionTable === null) {
-    __proxiedFunctionTable = new _ProxiedFunctionTable();
-  }
-  return __proxiedFunctionTable;
-}
-
-// A subtype to manage non-Function Dart objects.
-class _ProxiedObjectTable extends _ProxiedReferenceTable<Object> {
-  _ProxiedObjectTable() : super('dart-ref') {
-    _port.receive((msg) {
-      // TODO(vsm): Support a mechanism to register a handler here.
-      throw 'Invocation unsupported on Dart proxies';
-    });
-  }
-}
-
 // The singleton to manage proxied Dart objects.
-_ProxiedObjectTable __proxiedObjectTable;
-_ProxiedObjectTable get _proxiedObjectTable {
-  if (__proxiedObjectTable === null) {
-    __proxiedObjectTable = new _ProxiedObjectTable();
-  }
-  return __proxiedObjectTable;
-}
+_ProxiedObjectTable _proxiedObjectTable = new _ProxiedObjectTable();
 
 /// End of proxy implementation.
 
 // Dart serialization support.
-
-// A Map to track remote functions and reserialize them properly.
-// TODO(vsm): Once operator call is available, this table will be unnecessary.
-// Remote functions will be represented by a Proxy object with a call method.
-class _DeserializedFunctionTable {
-  List data;
-  _DeserializedFunctionTable() {
-    data = [];
-  }
-
-  find(Function f) {
-    for (var item in data) {
-      if (f == item[0]) return item[1];
-    }
-    return null;
-  }
-
-  remove(Function f) {
-    data = data.filter((item) => item[0] != f);
-  }
-
-  add(Function f, x) {
-    data.add([f, x]);
-  }
-}
-
-_DeserializedFunctionTable __deserializedFunctionTable = null;
-get _deserializedFunctionTable {
-  if (__deserializedFunctionTable == null) {
-    __deserializedFunctionTable = new _DeserializedFunctionTable();
-  }
-  return __deserializedFunctionTable;
-}
 
 _serialize(var message) {
   if (message == null) {
@@ -1000,22 +1195,17 @@ _serialize(var message) {
   } else if (message is SendPortSync) {
     // Non-proxied objects are serialized.
     return message;
-  } else if (message is Element) {
+  } else if (message is Element &&
+      (message.document == null || message.document == document)) {
     return [ 'domref', _serializeElement(message) ];
-  } else if (message is Callback) {
-    return message._serialized;
-  } else if (message is Function) {
-    var serialized = _deserializedFunctionTable.find(message);
-    if (serialized != null) {
-      // Remote cached function proxy.
-      return serialized;
-    } else {
-      throw 'A function must be converted to a '
-            'Callback before it can be serialized.';
-    }
+  } else if (message is FunctionProxy) {
+    return [ 'funcref', message._id, message._port ];
   } else if (message is Proxy) {
     // Remote object proxy.
     return [ 'objref', message._id, message._port ];
+  } else if (message is Serializable) {
+    // use of result of toJs()
+    return _serialize(message.toJs());
   } else {
     // Local object proxy.
     return [ 'objref',
@@ -1028,32 +1218,12 @@ _deserialize(var message) {
   deserializeFunction(message) {
     var id = message[1];
     var port = message[2];
-    if (port == _proxiedFunctionTable.sendPort) {
+    if (port == _proxiedObjectTable.sendPort) {
       // Local function.
-      return _proxiedFunctionTable.get(id);
+      return _proxiedObjectTable.get(id);
     } else {
       // Remote function.  Forward to its port.
-      // TODO: Support varargs when there is support in the language.
-      var f = ([arg0, arg1, arg2, arg3]) {
-        var args;
-        if (?arg3)
-          args = [arg0, arg1, arg2, arg3];
-        else if (?arg2)
-          args = [arg0, arg1, arg2];
-        else if (?arg1)
-          args = [arg0, arg1];
-        else if (?arg0)
-          args = [arg0];
-        else
-          args = [];
-        var message = [id, args.map(_serialize)];
-        var result = port.callSync(message);
-        return _deserialize(result);
-      };
-
-      // Cache the remote id and port.
-      _deserializedFunctionTable.add(f, message);
-      return f;
+      return new FunctionProxy._internal(port, id);
     }
   }
 
@@ -1106,7 +1276,7 @@ _serializeElement(Element e) {
     id = 'dart-${_localNextElementId++}';
     e.attributes[_DART_ID] = id;
   }
-  if (e !== document.documentElement) {
+  if (!identical(e, document.documentElement)) {
     // Element must be attached to DOM to be retrieve in js part.
     // Attach top unattached parent to avoid detaching parent of "e" when
     // appending "e" directly to document. We keep count of elements
@@ -1118,16 +1288,16 @@ _serializeElement(Element e) {
     while (true) {
       if (top.attributes.containsKey(_DART_TEMPORARY_ATTACHED)) {
         final oldValue = top.attributes[_DART_TEMPORARY_ATTACHED];
-        final newValue = oldValue.concat('a');
+        final newValue = oldValue + 'a';
         top.attributes[_DART_TEMPORARY_ATTACHED] = newValue;
         break;
       }
       if (top.parent == null) {
         top.attributes[_DART_TEMPORARY_ATTACHED] = 'a';
-        document.documentElement.elements.add(top);
+        document.documentElement.children.add(top);
         break;
       }
-      if (top.parent === document.documentElement) {
+      if (identical(top.parent, document.documentElement)) {
         // e was already attached to dom
         break;
       }
@@ -1144,7 +1314,7 @@ Element _deserializeElement(var id) {
     throw 'Only elements attached to document can be serialized: $id';
   }
   final e = list[0];
-  if (e !== document.documentElement) {
+  if (!identical(e, document.documentElement)) {
     // detach temporary attached element
     var top = e;
     while (true) {
@@ -1159,7 +1329,7 @@ Element _deserializeElement(var id) {
         }
         break;
       }
-      if (top.parent === document.documentElement) {
+      if (identical(top.parent, document.documentElement)) {
         // e was already attached to dom
         break;
       }
@@ -1169,14 +1339,51 @@ Element _deserializeElement(var id) {
   return e;
 }
 
+// Fetch the number of proxies to JavaScript objects.
+// This returns a 2 element list.  The first is the number of currently
+// live proxies.  The second is the total number of proxies ever
+// allocated.
+List _proxyCountJavaScript() {
+  return _jsPortProxyCount.callSync([]);
+}
+
 /**
- * Prints the number of live handles in Dart and JavaScript.  This is for
- * debugging / profiling purposes.
+ * Returns the number of allocated proxy objects matching the given
+ * conditions.  By default, the total number of live proxy objects are
+ * return.  In a well behaved program, this should stay below a small
+ * bound.
+ *
+ * Set [all] to true to return the total number of proxies ever allocated.
+ * Set [dartOnly] to only count proxies to Dart objects (live or all).
+ * Set [jsOnly] to only count proxies to JavaScript objects (live or all).
  */
-void proxyDebug([String message = '']) {
+int proxyCount({all: false, dartOnly: false, jsOnly: false}) {
+  final js = !dartOnly;
+  final dart = !jsOnly;
+  final jsCounts = js ? _proxyCountJavaScript() : null;
+  var sum = 0;
+  if (!all) {
+    if (js)
+      sum += jsCounts[0];
+    if (dart)
+      sum += _proxiedObjectTable.count;
+  } else {
+    if (js)
+      sum += jsCounts[1];
+    if (dart)
+      sum += _proxiedObjectTable.total;
+  }
+  return sum;
+}
+
+// Prints the number of live handles in Dart and JavaScript.  This is for
+// debugging / profiling purposes.
+void _proxyDebug([String message = '']) {
   print('Proxy status $message:');
-  var live = _proxiedObjectTable.count + _proxiedFunctionTable.count;
-  var total = _proxiedObjectTable.total + _proxiedFunctionTable.total;
-  print('  Dart objects Live : $live (out of $total ever allocated).');
-  print('  ${_jsPortDebug.callSync([])}');
+  var dartLive = proxyCount(dartOnly: true);
+  var dartTotal = proxyCount(dartOnly: true, all: true);
+  var jsLive = proxyCount(jsOnly: true);
+  var jsTotal = proxyCount(jsOnly: true, all: true);
+  print('  Dart objects Live : $dartLive (out of $dartTotal ever allocated).');
+  print('  JS objects Live : $jsLive (out of $jsTotal ever allocated).');
 }
