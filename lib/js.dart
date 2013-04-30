@@ -726,7 +726,8 @@ get _depth => _proxiedObjectTable._scopeIndices.length;
 void _enterScopeIfNeeded() {
   if (_depth == 0) {
     var depth = _enterScope();
-    runAsync(() => _exitScope(depth));
+    if (!_lifetimeScope)
+      runAsync(() => _exitScope(depth));
   }
 }
 
@@ -1223,6 +1224,12 @@ _serialize(var message) {
   } else if (message is Serializable) {
     // use of result of toJs()
     return _serialize(message.toJs());
+  } else if (_serializeMaps && message is Map) {
+    return _serialize(map(message));
+  } else if (_serializeLists && message is List) {
+    return _serialize(array(message));
+  } else if (_serializeFunctions && message is Function) {
+    return _serialize(new Callback.many(message));
   } else {
     // Local object proxy.
     return [ 'objref',
@@ -1402,3 +1409,33 @@ void _proxyDebug([String message = '']) {
   print('  Dart objects Live : $dartLive (out of $dartTotal ever allocated).');
   print('  JS objects Live : $jsLive (out of $jsTotal ever allocated).');
 }
+
+//
+// Experimental flags
+//
+
+void $experimentalConfigure({lifetimeScope: false,
+                             serializeFunctions: false,
+                             serializeMaps: false,
+                             serializeLists: false}) {
+  _lifetimeScope = lifetimeScope;
+  _serializeFunctions = serializeFunctions;
+  _serializeMaps = serializeMaps;
+  _serializeLists = serializeLists;
+}
+
+// Keep top-level [Proxy] objects live implicitly for the lifetime of the
+// page.  Note, this may cause memory leaks, so enable with care.
+bool _lifetimeScope = false;
+
+// Treat all Dart [Function] objects as [Serializable] to JS functions.
+// When this is enabled, a [Function] will be implicitly converted to a
+// [Callback] object.  Note, these will never be collected, so enable
+// with care.
+bool _serializeFunctions = false;
+
+// Treat all Dart [Map] objects as [Serializable] to JS maps.
+bool _serializeMaps = false;
+
+// Treat all Dart [List] objects as [Serializable] to JS lists.
+bool _serializeLists = false;
